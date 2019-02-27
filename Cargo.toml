@@ -5,8 +5,4 @@ authors = ["Alexey Golubev <dr.freecx@gmail.com>"]
 edition = "2018"
 
 [dependencies.sdl2]
-features = ["gfx"]
 version = "0.32"
-
-[dependencies]
-palette = "0.4"
