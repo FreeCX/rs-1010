@@ -1,7 +1,9 @@
 use crate::extra::Coord;
 use sdl2::pixels::Color;
-use sdl2::rect::Point;
+use sdl2::rect::{Point, Rect};
 use sdl2::render::Canvas;
+use sdl2::render::TextureQuery;
+use sdl2::ttf::Font;
 use sdl2::video::Window;
 
 // very simple & unstable polygon drawing
@@ -63,5 +65,15 @@ pub fn fill_rounded_rect(canvas: &mut Canvas<Window>, c1: Coord, c2: Coord, r: i
     }
     // draw
     polygon(canvas, &mut tmp, c)?;
+    Ok(())
+}
+
+pub fn render_font(canvas: &mut Canvas<Window>, font: &Font, pos: Coord, c: Color, text: &str) -> Result<(), String> {
+    let texture_creator = canvas.texture_creator();
+    let surface = font.render(text).blended(c).map_err(|e| e.to_string())?;
+    let texture = texture_creator.create_texture_from_surface(&surface).map_err(|e| e.to_string())?;
+    let TextureQuery { width, height, .. } = texture.query();
+    let target = Rect::new(pos.x as i32, pos.y as i32, width, height);
+    canvas.copy(&texture, None, Some(target))?;
     Ok(())
 }
