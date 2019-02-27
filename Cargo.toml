@@ -5,4 +5,5 @@ authors = ["Alexey Golubev <dr.freecx@gmail.com>"]
 edition = "2018"
 
 [dependencies.sdl2]
+features = ["ttf"]
 version = "0.32"

@@ -7,6 +7,12 @@ use sdl2::video::Window;
 use std::collections::{HashMap, HashSet};
 use std::time::SystemTime;
 
+#[derive(Clone, Copy)]
+pub struct Lines {
+    pub x: u32,
+    pub y: u32
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum State {
     Wait,
@@ -20,9 +26,10 @@ pub struct Field {
     tile_sep: Coord,
     pos: Coord,
     field: HashSet<Coord>,
-    pub colors: HashMap<Coord, Color>,
+    colors: HashMap<Coord, Color>,
     cur_state: State,
     all_state: Vec<State>,
+    lines: Lines
 }
 
 #[derive(Clone, Eq, PartialEq)]
@@ -45,6 +52,16 @@ pub struct BasketSystem {
     rnd: Random,
 }
 
+impl Lines {
+    pub fn empty() -> Lines {
+        Lines { x: 0, y: 0 }
+    }
+
+    pub fn not_empty(self) -> bool {
+        self.x != 0 || self.y != 0
+    }
+}
+
 impl Field {
     pub fn init_square(pole_size: u8, tile_size: u8, tile_sep: u8, pos: Coord) -> Field {
         Field {
@@ -56,6 +73,7 @@ impl Field {
             colors: HashMap::new(),
             cur_state: State::Wait,
             all_state: Vec::new(),
+            lines: Lines::empty()
         }
     }
 
@@ -149,7 +167,7 @@ impl Field {
         Ok(())
     }
 
-    pub fn next_state(&mut self) {
+    pub fn next_state(&mut self) -> Option<Lines> {
         let new_state = match self.cur_state {
             State::Wait => {
                 for x in 0..self.field_size.x {
@@ -166,6 +184,7 @@ impl Field {
             }
             State::ClearLineX(x, y) => {
                 if y == self.field_size.y {
+                    self.lines.y += 1;
                     self.pop_state()
                 } else {
                     self.remove(coord!(x, y));
@@ -174,6 +193,7 @@ impl Field {
             }
             State::ClearLineY(x, y) => {
                 if x == self.field_size.x {
+                    self.lines.x += 1;
                     self.pop_state()
                 } else {
                     self.remove(coord!(x, y));
@@ -182,6 +202,17 @@ impl Field {
             }
         };
         self.cur_state = new_state;
+        if self.cur_state == State::Wait {
+            if self.lines.not_empty() {
+                let lines = self.lines;
+                self.lines = Lines::empty();
+                Some(lines)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 }
 
@@ -200,6 +231,10 @@ impl Figure {
             blocks.insert(pos + block);
         }
         Figure { blocks, color: self.color }
+    }
+
+    pub fn blocks(&self) -> u32 {
+        self.blocks.len() as u32
     }
 
     pub fn render(

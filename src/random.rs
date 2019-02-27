@@ -1,4 +1,3 @@
-#[derive(Debug)]
 pub struct Random {
     x: u32,
     y: u32,
