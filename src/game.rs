@@ -1,21 +1,19 @@
-#![allow(dead_code, unused_variables)]
-use std::collections::{HashMap, HashSet};
-
 use crate::extra::Coord;
-use crate::render::fill_rounded_rect;
 use crate::random::Random;
+use crate::render::fill_rounded_rect;
 use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
+use std::collections::{HashMap, HashSet};
+use std::time::SystemTime;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum State {
     Wait,
     ClearLineX(i16, i16),
     ClearLineY(i16, i16),
 }
 
-#[derive(Debug)]
 pub struct Field {
     field_size: Coord,
     tile_size: Coord,
@@ -27,26 +25,24 @@ pub struct Field {
     all_state: Vec<State>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct Figure {
     blocks: HashSet<Coord>,
     color: Color,
 }
 
-#[derive(Debug)]
 pub struct Basket {
     field_size: Coord,
     tile_size: Coord,
     tile_sep: Coord,
     figure: Option<Figure>,
-    pos: Coord
+    pos: Coord,
 }
 
-#[derive(Debug)]
 pub struct BasketSystem {
     basket: Vec<Basket>,
     current: Option<usize>,
-    rnd: Random
+    rnd: Random,
 }
 
 impl Field {
@@ -134,7 +130,7 @@ impl Field {
         self.colors.remove(&p);
     }
 
-    pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color) -> Result<(), String> {
+    pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color, radius: i16) -> Result<(), String> {
         let (x_sep, y_sep) = (self.tile_sep.x, self.tile_sep.y);
         let (w, h) = (self.tile_size.x + x_sep, self.tile_size.y + x_sep);
         let (x_shift, y_shift) = (self.pos.x, self.pos.y);
@@ -147,7 +143,7 @@ impl Field {
                     empty_field_color
                 };
                 let (xp, yp) = (x * w + x_shift, y * h + y_shift);
-                fill_rounded_rect(canvas, coord!(xp, yp), coord!(xp + w - x_sep, yp + h - y_sep), 4, color)?;
+                fill_rounded_rect(canvas, coord!(xp, yp), coord!(xp + w - x_sep, yp + h - y_sep), radius, color)?;
             }
         }
         Ok(())
@@ -206,18 +202,24 @@ impl Figure {
         Figure { blocks, color: self.color }
     }
 
-    pub fn render(&self, canvas: &mut Canvas<Window>, pos: Coord, size: Coord, sep: Coord) -> Result<(), String> {
+    pub fn render(
+        &self,
+        canvas: &mut Canvas<Window>,
+        pos: Coord,
+        size: Coord,
+        sep: Coord,
+        radius: i16,
+    ) -> Result<(), String> {
         let (x_sep, y_sep) = (sep.x, sep.y);
         let (w, h) = (size.x + x_sep, size.y + x_sep);
         let (x_shift, y_shift) = (pos.x, pos.y);
         for c in &self.blocks {
             let (xp, yp) = (c.x * w + x_shift, c.y * h + y_shift);
-            fill_rounded_rect(canvas, coord!(xp, yp), coord!(xp + w - x_sep, yp + h - y_sep), 4, self.color)?;
+            fill_rounded_rect(canvas, coord!(xp, yp), coord!(xp + w - x_sep, yp + h - y_sep), radius, self.color)?;
         }
         Ok(())
     }
 }
-
 
 impl Basket {
     pub fn init_square(field_size: u8, tile_size: u8, tile_sep: u8, pos: Coord) -> Basket {
@@ -226,7 +228,7 @@ impl Basket {
             tile_size: coord!(tile_size as i16, tile_size as i16),
             tile_sep: coord!(tile_sep as i16, tile_sep as i16),
             figure: None,
-            pos
+            pos,
         }
     }
 
@@ -249,7 +251,7 @@ impl Basket {
         figure
     }
 
-    pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color) -> Result<(), String> {
+    pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color, radius: i16) -> Result<(), String> {
         let (x_sep, y_sep) = (self.tile_sep.x, self.tile_sep.y);
         let (w, h) = (self.tile_size.x + x_sep, self.tile_size.y + x_sep);
         let (x_shift, y_shift) = (self.pos.x, self.pos.y);
@@ -257,14 +259,14 @@ impl Basket {
             for x in 0..self.field_size.x {
                 let color = empty_field_color;
                 let (xp, yp) = (x * w + x_shift, y * h + y_shift);
-                fill_rounded_rect(canvas, coord!(xp, yp), coord!(xp + w - x_sep, yp + h - y_sep), 4, color)?;
+                fill_rounded_rect(canvas, coord!(xp, yp), coord!(xp + w - x_sep, yp + h - y_sep), radius, color)?;
             }
         }
         if let Some(figure) = self.figure.clone() {
             let color = figure.color;
             for Coord { x, y } in figure.blocks {
                 let (xp, yp) = (x * w + x_shift, y * h + y_shift);
-                fill_rounded_rect(canvas, coord!(xp, yp), coord!(xp + w - x_sep, yp + h - y_sep), 4, color)?;
+                fill_rounded_rect(canvas, coord!(xp, yp), coord!(xp + w - x_sep, yp + h - y_sep), radius, color)?;
             }
         }
         Ok(())
@@ -274,17 +276,17 @@ impl Basket {
 impl BasketSystem {
     pub fn new(count: u8, field_size: u8, tile_size: u8, tile_sep: u8, pos: Coord, shift: Coord) -> BasketSystem {
         let mut basket = Vec::new();
-        // TODO: use normal seed value
-        let rnd = Random::new(1234);
+        let seed = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+            Ok(n) => n.as_secs(),
+            // https://xkcd.com/221/
+            Err(_) => 4,
+        };
+        let rnd = Random::new(seed as u32);
         for i in 0..count {
             let bpos = pos + shift * (i as i16);
             basket.push(Basket::init_square(field_size, tile_size, tile_sep, bpos));
         }
-        BasketSystem {
-            basket,
-            current: None,
-            rnd
-        }
+        BasketSystem { basket, current: None, rnd }
     }
 
     pub fn get(&mut self, pos: Coord) -> Option<Figure> {
@@ -321,9 +323,9 @@ impl BasketSystem {
         self.fill(figures);
     }
 
-    pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color) -> Result<(), String> {
+    pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color, radius: i16) -> Result<(), String> {
         for item in &self.basket {
-            item.render(canvas, empty_field_color)?;
+            item.render(canvas, empty_field_color, radius)?;
         }
         Ok(())
     }
