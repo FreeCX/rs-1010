@@ -149,7 +149,7 @@ impl Field {
     }
 
     pub fn can_set(&self, figures: Vec<Figure>) -> bool {
-        if figures.len() == 0 {
+        if figures.len() == 0 || self.cur_state != State::Wait {
             return true;
         }
         for figure in figures {
