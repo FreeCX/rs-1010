@@ -5,7 +5,7 @@ use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
 use std::fs::File;
 use std::io::prelude::{Read, Write};
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 #[macro_use]
 mod extra;
@@ -49,7 +49,8 @@ fn main() {
     // TODO: check field size
     const W_WIDTH: u32 = FIELD_WIDTH + BASKET_WIDTH;
     const W_HEIGHT: u32 = FIELD_WIDTH;
-    const FPS: u32 = 60;
+    const WTF_CONST: u32 = 10;
+    const FPS: u32 = 30;
 
     // game params
     let figures = vec![
@@ -106,6 +107,8 @@ fn main() {
     // fill basket by random figures
     basket.fill(&figures);
 
+    let mut last_time = SystemTime::now();
+
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
         // render
@@ -130,6 +133,13 @@ fn main() {
                 .expect("Can't draw figure");
         }
         canvas.present();
+        // calc elapsed time
+        let current_time = SystemTime::now();
+        let elapsed = match current_time.duration_since(last_time) {
+            Ok(n) => n.subsec_nanos(),
+            Err(_) => 0,
+        };
+        last_time = current_time;
 
         // events
         for event in event_pump.poll_iter() {
@@ -168,7 +178,7 @@ fn main() {
         highscore = highscore.max(score);
 
         // sleep
-        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / FPS));
+        std::thread::sleep(Duration::new(0, (1_000_000_000 - WTF_CONST * elapsed) / FPS));
     }
 
     save_highscore(HIGHSCORE_FILE, highscore);
