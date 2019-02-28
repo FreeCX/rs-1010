@@ -42,10 +42,12 @@ fn main() {
     const TILE_SEP_1: u8 = 3;
     const TILE_SEP_2: u8 = 2;
     const ROUND_RADIUS: i16 = 4;
+    const BIG_ROUND_RADIUS: i16 = 8;
     const FIELD_WIDTH: u32 = (TILE_SIZE_1 as u32 + TILE_SEP_1 as u32) * FIELD_SIZE as u32 + 2 * FIELD_SHIFT as u32;
     const BASKET_WIDTH: u32 = (TILE_SIZE_2 as u32 + TILE_SEP_2 as u32) * BASKET_SIZE as u32 + FIELD_SHIFT as u32;
-    const FONT_SIZE: u16 = 18;
-    const FONT_HEIGHT: i16 = FONT_SIZE as i16 + 2;
+    const FONT_DEF_SIZE: u16 = 18;
+    const FONT_BIG_SIZE: u16 = 48;
+    const FONT_HEIGHT: i16 = FONT_DEF_SIZE as i16 + 2;
     // TODO: check field size
     const W_WIDTH: u32 = FIELD_WIDTH + BASKET_WIDTH;
     const W_HEIGHT: u32 = FIELD_WIDTH;
@@ -78,8 +80,10 @@ fn main() {
         figure!(Color::RGB(210, 100, 230); (0, 0), (0, 1), (1, 1)),
         figure!(Color::RGB(210, 100, 230); (0, 0), (1, 0), (0, 1)),
     ];
+    let bg_color = Color::RGB(100, 100, 100);
     let field_bg_color = Color::RGB(170, 170, 170);
     let font_color = Color::RGB(200, 200, 200);
+    let border_color = Color::RGB(210, 210, 210);
     let field_pos = coord!(FIELD_SHIFT, FIELD_SHIFT);
     let basket_pos = coord!(370, 69);
     let basket_shift = coord!(0, 100);
@@ -89,6 +93,14 @@ fn main() {
     let mut mouse_last_pos = coord!(0, 0);
     let mut highscore: u32 = load_highscore(HIGHSCORE_FILE);
     let mut score: u32 = 0;
+    // game over block
+    let mut gameover_flag = false;
+    let gameover_pos = coord!(100, (W_HEIGHT as i16 - FONT_BIG_SIZE as i16 - 5) / 2);
+    let bp3 = gameover_pos - coord!(10, 0);
+    let bp4 = gameover_pos + coord!(269, FONT_BIG_SIZE as i16 + 8);
+    let border_size = coord!(8, 8);
+    let bp1 = bp3 - border_size;
+    let bp2 = bp4 + border_size;
 
     // SDL2
     let sdl_context = sdl2::init().expect("Can't init sdl2 context");
@@ -97,7 +109,8 @@ fn main() {
         video_subsystem.window("1010", W_WIDTH, W_HEIGHT).position_centered().build().expect("Can't create window");
     let mut canvas = window.into_canvas().build().expect("Can't get canvas");
     let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string()).expect("Can't create ttf context");
-    let font = ttf_context.load_font("./resource/FiraMono-Regular.ttf", FONT_SIZE).expect("Can't load font");
+    let font = ttf_context.load_font("./resource/FiraMono-Regular.ttf", FONT_DEF_SIZE).expect("Can't load font");
+    let font_big = ttf_context.load_font("./resource/FiraMono-Regular.ttf", FONT_BIG_SIZE).expect("Can't load font");
 
     // game objects
     let mut current_figure: Option<game::Figure> = None;
@@ -112,7 +125,7 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
         // render
-        canvas.set_draw_color(Color::RGB(100, 100, 100));
+        canvas.set_draw_color(bg_color);
         canvas.clear();
         render::render_font(&mut canvas, &font, text_pos, font_color, "score").expect("Can't render font");
         render::render_font(&mut canvas, &font, score_pos, font_color, &format!("{:08}", score))
@@ -121,6 +134,14 @@ fn main() {
             .expect("Can't render font");
         field.render(&mut canvas, field_bg_color, ROUND_RADIUS).expect("Can't draw field");
         basket.render(&mut canvas, field_bg_color, ROUND_RADIUS).expect("Can't draw basket");
+        if gameover_flag {
+            render::fill_rounded_rect(&mut canvas, bp1, bp2, BIG_ROUND_RADIUS, border_color)
+                .expect("Can't draw rounded rect");
+            render::fill_rounded_rect(&mut canvas, bp3, bp4, BIG_ROUND_RADIUS, bg_color)
+                .expect("Can't draw rounded rect");
+            render::render_font(&mut canvas, &font_big, gameover_pos, font_color, "GAME OVER")
+                .expect("Can't render font");
+        }
         if let Some(figure) = &current_figure {
             figure
                 .render(
@@ -150,6 +171,14 @@ fn main() {
                     mouse_last_pos.y = y as i16 - TILE_SIZE_2 as i16;
                 }
                 Event::MouseButtonDown { mouse_btn: MouseButton::Left, x, y, .. } => {
+                    if gameover_flag {
+                        // restart game
+                        gameover_flag = false;
+                        basket.fill(&figures);
+                        field.clear();
+                        score = 0;
+                        continue;
+                    }
                     current_figure = match current_figure {
                         Some(ref figure) => {
                             if !field.set_figure(x, y, &figure) {
@@ -167,6 +196,10 @@ fn main() {
         }
 
         // game state
+        if !field.can_set(basket.figures()) && current_figure == None {
+            gameover_flag = true;
+            current_figure = None;
+        }
         if let Some(lines) = field.next_state() {
             score += (lines.x + lines.y + lines.x * lines.y) * LINE_MULTIPLIER;
         }

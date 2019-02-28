@@ -91,14 +91,14 @@ impl Field {
                 return false;
             }
         }
-        let intersect = self.field.intersection(&new_figure.blocks).count() == 0;
-        if intersect {
+        let not_intersect = self.field.intersection(&new_figure.blocks).count() == 0;
+        if not_intersect {
             for p in new_figure.blocks {
                 self.field.insert(p);
                 self.colors.insert(p, figure.color);
             }
         }
-        intersect
+        not_intersect
     }
 
     fn check_line_h(&self, index: u8) -> Option<bool> {
@@ -148,23 +148,32 @@ impl Field {
         self.colors.remove(&p);
     }
 
-    pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color, radius: i16) -> Result<(), String> {
-        let (x_sep, y_sep) = (self.tile_sep.x, self.tile_sep.y);
-        let (w, h) = (self.tile_size.x + x_sep, self.tile_size.y + x_sep);
-        let (x_shift, y_shift) = (self.pos.x, self.pos.y);
-        for y in 0..self.field_size.y {
-            for x in 0..self.field_size.x {
-                let pos = coord!(x, y);
-                let color = if self.field.contains(&pos) {
-                    *self.colors.get(&pos).ok_or("Can't get color")?
-                } else {
-                    empty_field_color
-                };
-                let (xp, yp) = (x * w + x_shift, y * h + y_shift);
-                fill_rounded_rect(canvas, coord!(xp, yp), coord!(xp + w - x_sep, yp + h - y_sep), radius, color)?;
+    pub fn can_set(&self, figures: Vec<Figure>) -> bool {
+        if figures.len() == 0 {
+            return true;
+        }
+        for figure in figures {
+            let x_max = figure.blocks.iter().fold(0, |m, p| m.max(p.x));
+            let y_max = figure.blocks.iter().fold(0, |m, p| m.max(p.y));
+            for y in 0..self.field_size.y - y_max {
+                for x in 0..self.field_size.x - x_max {
+                    let new_figure = figure.shift(coord!(x, y));
+                    // can set a figure?
+                    if self.field.intersection(&new_figure.blocks).count() == 0 {
+                        return true;
+                    }
+                }
             }
         }
-        Ok(())
+        false
+    }
+
+    pub fn clear(&mut self) {
+        self.field.clear();
+        self.colors.clear();
+        self.cur_state = State::Wait;
+        self.all_state.clear();
+        self.lines = Lines::empty();
     }
 
     pub fn next_state(&mut self) -> Option<Lines> {
@@ -213,6 +222,25 @@ impl Field {
         } else {
             None
         }
+    }
+
+    pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color, radius: i16) -> Result<(), String> {
+        let (x_sep, y_sep) = (self.tile_sep.x, self.tile_sep.y);
+        let (w, h) = (self.tile_size.x + x_sep, self.tile_size.y + x_sep);
+        let (x_shift, y_shift) = (self.pos.x, self.pos.y);
+        for y in 0..self.field_size.y {
+            for x in 0..self.field_size.x {
+                let pos = coord!(x, y);
+                let color = if self.field.contains(&pos) {
+                    *self.colors.get(&pos).ok_or("Can't get color")?
+                } else {
+                    empty_field_color
+                };
+                let (xp, yp) = (x * w + x_shift, y * h + y_shift);
+                fill_rounded_rect(canvas, coord!(xp, yp), coord!(xp + w - x_sep, yp + h - y_sep), radius, color)?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -286,6 +314,10 @@ impl Basket {
         figure
     }
 
+    pub fn figure(&self) -> Option<Figure> {
+        self.figure.clone()
+    }
+
     pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color, radius: i16) -> Result<(), String> {
         let (x_sep, y_sep) = (self.tile_sep.x, self.tile_sep.y);
         let (w, h) = (self.tile_size.x + x_sep, self.tile_size.y + x_sep);
@@ -356,6 +388,16 @@ impl BasketSystem {
             }
         }
         self.fill(figures);
+    }
+
+    pub fn figures(&self) -> Vec<Figure> {
+        let mut figures = Vec::new();
+        for basket in &self.basket {
+            if let Some(figure) = basket.figure() {
+                figures.push(figure);
+            }
+        }
+        figures
     }
 
     pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color, radius: i16) -> Result<(), String> {
