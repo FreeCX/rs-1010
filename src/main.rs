@@ -90,7 +90,8 @@ fn main() {
     let text_pos = coord!(FIELD_WIDTH as i16, FIELD_SHIFT - 5);
     let score_pos = text_pos + coord!(0, FONT_HEIGHT);
     let highscore_pos = score_pos + coord!(0, FONT_HEIGHT);
-    let mut mouse_last_pos = coord!(0, 0);
+    let mut figure_pos = coord!(0, 0);
+    let mut mouse_pos = coord!(0, 0);
     let mut highscore: u32 = load_highscore(HIGHSCORE_FILE);
     let mut score: u32 = 0;
     // game over block
@@ -145,15 +146,14 @@ fn main() {
             render::font(&mut canvas, &font_big, gameover_pos, font_color, "GAME OVER").expect("Can't render font");
         }
         if let Some(figure) = &current_figure {
-            figure
-                .render(
-                    &mut canvas,
-                    mouse_last_pos,
-                    coord!(TILE_SIZE_1 as i16, TILE_SIZE_1 as i16),
-                    coord!(TILE_SEP_1 as i16, TILE_SEP_1 as i16),
-                    ROUND_RADIUS,
-                )
-                .expect("Can't draw figure");
+            let size = coord!(TILE_SIZE_1 as i16, TILE_SIZE_1 as i16);
+            let sep = coord!(TILE_SEP_1 as i16, TILE_SEP_1 as i16);
+            figure_pos = if field.point_in(&mouse_pos) {
+                field.position_in(&mouse_pos, &figure)
+            } else {
+                mouse_pos
+            };
+            figure.render(&mut canvas, figure_pos, size, sep, ROUND_RADIUS).expect("Can't draw figure");
         }
         canvas.present();
 
@@ -162,8 +162,8 @@ fn main() {
             match event {
                 Event::Quit { .. } | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'running,
                 Event::MouseMotion { x, y, .. } => {
-                    mouse_last_pos.x = x as i16 - TILE_SIZE_2 as i16;
-                    mouse_last_pos.y = y as i16 - TILE_SIZE_2 as i16;
+                    mouse_pos.x = x as i16;
+                    mouse_pos.y = y as i16;
                 }
                 Event::MouseButtonDown { mouse_btn: MouseButton::Left, x, y, .. } => {
                     if gameover_flag {
@@ -176,7 +176,7 @@ fn main() {
                     }
                     current_figure = match current_figure {
                         Some(ref figure) => {
-                            if !field.set_figure(x, y, &figure) {
+                            if !field.set_figure(&figure_pos, &figure) {
                                 basket.ret(figure.clone());
                             } else {
                                 score += figure.blocks();
@@ -211,11 +211,7 @@ fn main() {
         last_time = current_time;
 
         // sleep
-        let sleep_time = if elapsed < 1000 / FPS {
-            1000 / FPS - elapsed
-        } else {
-            1000 / FPS
-        };
+        let sleep_time = if elapsed < 1000 / FPS { 1000 / FPS - elapsed } else { 1000 / FPS };
         timer.delay(sleep_time);
     }
 

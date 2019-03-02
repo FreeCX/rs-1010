@@ -26,6 +26,18 @@ macro_rules! coord {
     };
 }
 
+#[macro_export]
+macro_rules! normalize {
+    ($param:expr; $lower:expr, $upper:expr) => {
+        if $param < $lower {
+            $param = $lower;
+        }
+        if $param > $upper {
+            $param = $upper;
+        }
+    };
+}
+
 impl Add for Coord {
     type Output = Self;
 
@@ -39,6 +51,14 @@ impl Sub for Coord {
 
     fn sub(self, rhs: Self::Output) -> Self::Output {
         coord!(self.x - rhs.x, self.y - rhs.y)
+    }
+}
+
+impl Mul for Coord {
+    type Output = Self;
+
+    fn mul(self, k: Self) -> Self::Output {
+        coord!(self.x * k.x, self.y * k.y)
     }
 }
 
