@@ -60,7 +60,7 @@ pub fn fill_rounded_rect(canvas: &mut Canvas<Window>, c1: Coord, c2: Coord, r: i
     Ok(())
 }
 
-pub fn render_font(canvas: &mut Canvas<Window>, font: &Font, pos: Coord, c: Color, text: &str) -> Result<(), String> {
+pub fn font(canvas: &mut Canvas<Window>, font: &Font, pos: Coord, c: Color, text: &str) -> Result<(), String> {
     let texture_creator = canvas.texture_creator();
     let surface = font.render(text).blended(c).map_err(|e| e.to_string())?;
     let texture = texture_creator.create_texture_from_surface(&surface).map_err(|e| e.to_string())?;
