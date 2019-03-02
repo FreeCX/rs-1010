@@ -1,1 +1,1 @@
-resource/demo.gif filter=lfs diff=lfs merge=lfs -text
+resources/demo.gif filter=lfs diff=lfs merge=lfs -text
