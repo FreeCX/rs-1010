@@ -31,8 +31,11 @@ fn save_highscore(filename: &str, score: u32) {
 }
 
 fn main() {
-    // game consts
+    // consts block
+    const FONT_FILE: &'static str = "./resources/FiraMono-Regular.ttf";
     const HIGHSCORE_FILE: &'static str = "gamescore.txt";
+    const GAME_TITLE: &'static str = "1010";
+    const MILLISECOND: u32 = 1000;
     const LINE_MULTIPLIER: u32 = 10;
     const BASKET_COUNT: u8 = 3;
     const BASKET_SIZE: u8 = 5;
@@ -45,12 +48,11 @@ fn main() {
     const ROUND_RADIUS: i16 = 4;
     const BIG_ROUND_RADIUS: i16 = 8;
     const FIELD_WIDTH: u32 = (TILE_SIZE_1 as u32 + TILE_SEP_1 as u32) * FIELD_SIZE as u32 + 2 * FIELD_SHIFT as u32;
-    const BASKET_WIDTH: u32 = (TILE_SIZE_2 as u32 + TILE_SEP_2 as u32) * BASKET_SIZE as u32 + FIELD_SHIFT as u32;
+    const BASKET_LEN: u32 = (TILE_SIZE_2 as u32 + TILE_SEP_2 as u32) * BASKET_SIZE as u32 + FIELD_SHIFT as u32;
     const FONT_DEF_SIZE: u16 = 18;
     const FONT_BIG_SIZE: u16 = 48;
     const FONT_HEIGHT: i16 = FONT_DEF_SIZE as i16 + 2;
-    // TODO: check field size
-    const W_WIDTH: u32 = FIELD_WIDTH + BASKET_WIDTH;
+    const W_WIDTH: u32 = FIELD_WIDTH + BASKET_LEN;
     const W_HEIGHT: u32 = FIELD_WIDTH;
     const FPS: u32 = 30;
 
@@ -84,14 +86,16 @@ fn main() {
     let field_bg_color = Color::RGB(170, 170, 170);
     let font_color = Color::RGB(200, 200, 200);
     let border_color = Color::RGB(210, 210, 210);
+
+    let basket_pos = coord!(FIELD_WIDTH as i16, 69);
+    let basket_shift = coord!(0, BASKET_LEN as i16);
     let field_pos = coord!(FIELD_SHIFT, FIELD_SHIFT);
-    let basket_pos = coord!(370, 69);
-    let basket_shift = coord!(0, 100);
     let text_pos = coord!(FIELD_WIDTH as i16, FIELD_SHIFT - 5);
     let score_pos = text_pos + coord!(0, FONT_HEIGHT);
     let highscore_pos = score_pos + coord!(0, FONT_HEIGHT);
     let mut figure_pos = coord!(0, 0);
     let mut mouse_pos = coord!(0, 0);
+
     let mut highscore: u32 = load_highscore(HIGHSCORE_FILE);
     let mut score: u32 = 0;
     // game over block
@@ -107,21 +111,23 @@ fn main() {
     let sdl_context = sdl2::init().expect("Can't init sdl2 context");
     let video_subsystem = sdl_context.video().expect("Can't create video subsystem");
     let window =
-        video_subsystem.window("1010", W_WIDTH, W_HEIGHT).position_centered().build().expect("Can't create window");
+        video_subsystem.window(GAME_TITLE, W_WIDTH, W_HEIGHT).position_centered().build().expect("Can't create window");
     let mut timer = sdl_context.timer().expect("Can't init timer");
     let mut canvas = window.into_canvas().build().expect("Can't get canvas");
     let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string()).expect("Can't create ttf context");
-    let font = ttf_context.load_font("./resource/FiraMono-Regular.ttf", FONT_DEF_SIZE).expect("Can't load font");
-    let font_big = ttf_context.load_font("./resource/FiraMono-Regular.ttf", FONT_BIG_SIZE).expect("Can't load font");
+    let font = ttf_context.load_font(FONT_FILE, FONT_DEF_SIZE).expect("Can't load font");
+    let font_big = ttf_context.load_font(FONT_FILE, FONT_BIG_SIZE).expect("Can't load font");
 
     // game objects
     let mut current_figure: Option<game::Figure> = None;
     let mut field = game::Field::init_square(FIELD_SIZE, TILE_SIZE_1, TILE_SEP_1, field_pos);
     let mut basket =
         game::BasketSystem::new(BASKET_COUNT, BASKET_SIZE, TILE_SIZE_2, TILE_SEP_2, basket_pos, basket_shift);
+
     // fill basket by random figures
     basket.fill(&figures);
 
+    // fps
     let mut elapsed = 0;
     let mut last_time = 0;
 
@@ -146,14 +152,12 @@ fn main() {
             render::font(&mut canvas, &font_big, gameover_pos, font_color, "GAME OVER").expect("Can't render font");
         }
         if let Some(figure) = &current_figure {
-            let size = coord!(TILE_SIZE_1 as i16, TILE_SIZE_1 as i16);
+            let size_1 = coord!(TILE_SIZE_1 as i16, TILE_SIZE_1 as i16);
+            let size_2 = coord!(TILE_SIZE_2 as i16, TILE_SIZE_2 as i16);
             let sep = coord!(TILE_SEP_1 as i16, TILE_SEP_1 as i16);
-            figure_pos = if field.point_in(&mouse_pos) {
-                field.position_in(&mouse_pos, &figure)
-            } else {
-                mouse_pos
-            };
-            figure.render(&mut canvas, figure_pos, size, sep, ROUND_RADIUS).expect("Can't draw figure");
+            figure_pos =
+                if field.point_in(&mouse_pos) { field.position_in(&mouse_pos, &figure) } else { mouse_pos - size_2 };
+            figure.render(&mut canvas, figure_pos, size_1, sep, ROUND_RADIUS).expect("Can't draw figure");
         }
         canvas.present();
 
@@ -174,6 +178,7 @@ fn main() {
                         score = 0;
                         continue;
                     }
+                    // figure set | return
                     current_figure = match current_figure {
                         Some(ref figure) => {
                             if !field.set_figure(&figure_pos, &figure) {
@@ -190,18 +195,19 @@ fn main() {
             }
         }
 
-        // game state
+        // check gameover
         if !field.can_set(basket.figures()) && current_figure == None {
             gameover_flag = true;
             current_figure = None;
         }
+        // calculate score
         if let Some(lines) = field.next_state() {
             score += (lines.x + lines.y + lines.x * lines.y) * LINE_MULTIPLIER;
         }
+        // refill baskets
         if current_figure == None {
             basket.check_and_refill(&figures);
         }
-
         // update highscore
         highscore = highscore.max(score);
 
@@ -211,7 +217,7 @@ fn main() {
         last_time = current_time;
 
         // sleep
-        let sleep_time = if elapsed < 1000 / FPS { 1000 / FPS - elapsed } else { 1000 / FPS };
+        let sleep_time = if elapsed < MILLISECOND / FPS { MILLISECOND / FPS - elapsed } else { MILLISECOND / FPS };
         timer.delay(sleep_time);
     }
 

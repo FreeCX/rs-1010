@@ -1,3 +1,3 @@
 # rs-1010
 
-![Gameplay demo](./resource/demo.gif)
+![Gameplay demo](./resources/demo.gif)
