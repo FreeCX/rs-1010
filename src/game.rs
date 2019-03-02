@@ -77,15 +77,38 @@ impl Field {
         }
     }
 
-    pub fn set_figure(&mut self, x: i32, y: i32, figure: &Figure) -> bool {
+    pub fn get_cell_index(&self, pos: &Coord) -> Coord {
+        let nx = pos.x as f32 - self.pos.x as f32;
+        let ny = pos.y as f32 - self.pos.y as f32;
+        let mut xi = (nx / (self.tile_size.x as f32 + self.tile_sep.x as f32)).floor() as i16;
+        let mut yi = (ny / (self.tile_size.y as f32 + self.tile_sep.y as f32)).floor() as i16;
+        normalize!(xi; 0, self.field_size.x);
+        normalize!(yi; 0, self.field_size.y);
+        coord!(xi, yi)
+    }
+
+    pub fn position_in(&self, pos: &Coord, figure: &Figure) -> Coord {
+        let mut norm = self.get_cell_index(pos);
+        let m_val = figure.max();
+        normalize!(norm.x; 0, self.field_size.x - m_val.x - 1);
+        normalize!(norm.y; 0, self.field_size.y - m_val.y - 1);
+        norm = norm * (self.tile_size + self.tile_sep) + self.pos;
+        norm
+    }
+
+    pub fn point_in(&self, pos: &Coord) -> bool {
+        let nx = pos.x as f32 - self.pos.x as f32;
+        let ny = pos.y as f32 - self.pos.y as f32;
+        let x = (nx / (self.tile_size.x as f32 + self.tile_sep.x as f32)).floor() as i16;
+        let y = (ny / (self.tile_size.y as f32 + self.tile_sep.y as f32)).floor() as i16;
+        x >= 0 && x < self.field_size.x && y >= 0 && y < self.field_size.y
+    }
+
+    pub fn set_figure(&mut self, pos: &Coord, figure: &Figure) -> bool {
         if self.cur_state != State::Wait {
             return false;
         }
-        let nx = x as f32 - self.pos.x as f32;
-        let ny = y as f32 - self.pos.y as f32;
-        let xi = (nx / (self.tile_size.x as f32 + self.tile_sep.x as f32)).floor() as i16;
-        let yi = (ny / (self.tile_size.y as f32 + self.tile_sep.y as f32)).floor() as i16;
-        let new_figure = figure.shift(coord!(xi, yi));
+        let new_figure = figure.shift(self.get_cell_index(pos));
         for Coord { x, y } in &new_figure.blocks {
             if *x >= self.field_size.x || *x < 0 || *y >= self.field_size.y || *y < 0 {
                 return false;
@@ -263,6 +286,15 @@ impl Figure {
 
     pub fn blocks(&self) -> u32 {
         self.blocks.len() as u32
+    }
+
+    pub fn max(&self) -> Coord {
+        let (mut max_x, mut max_y) = (0, 0);
+        for Coord { x, y } in &self.blocks {
+            max_x = max_x.max(*x);
+            max_y = max_y.max(*y);
+        }
+        coord!(max_x, max_y)
     }
 
     pub fn render(
