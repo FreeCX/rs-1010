@@ -1,4 +1,5 @@
 #![windows_subsystem = "windows"]
+#![allow(unused_assignments)]
 extern crate sdl2;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -6,7 +7,6 @@ use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
 use std::fs::File;
 use std::io::prelude::{Read, Write};
-use std::time::{Duration, SystemTime};
 
 #[macro_use]
 mod extra;
@@ -52,7 +52,6 @@ fn main() {
     // TODO: check field size
     const W_WIDTH: u32 = FIELD_WIDTH + BASKET_WIDTH;
     const W_HEIGHT: u32 = FIELD_WIDTH;
-    const WTF_CONST: u32 = 10;
     const FPS: u32 = 30;
 
     // game params
@@ -108,6 +107,7 @@ fn main() {
     let video_subsystem = sdl_context.video().expect("Can't create video subsystem");
     let window =
         video_subsystem.window("1010", W_WIDTH, W_HEIGHT).position_centered().build().expect("Can't create window");
+    let mut timer = sdl_context.timer().expect("Can't init timer");
     let mut canvas = window.into_canvas().build().expect("Can't get canvas");
     let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string()).expect("Can't create ttf context");
     let font = ttf_context.load_font("./resource/FiraMono-Regular.ttf", FONT_DEF_SIZE).expect("Can't load font");
@@ -121,17 +121,19 @@ fn main() {
     // fill basket by random figures
     basket.fill(&figures);
 
-    let mut last_time = SystemTime::now();
+    let mut elapsed = 0;
+    let mut last_time = 0;
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
+        last_time = timer.ticks();
+
         // render
         canvas.set_draw_color(bg_color);
         canvas.clear();
-        render::render_font(&mut canvas, &font, text_pos, font_color, "score").expect("Can't render font");
-        render::render_font(&mut canvas, &font, score_pos, font_color, &format!("{:08}", score))
-            .expect("Can't render font");
-        render::render_font(&mut canvas, &font, highscore_pos, font_color, &format!("{:08}", highscore))
+        render::font(&mut canvas, &font, text_pos, font_color, "score").expect("Can't render font");
+        render::font(&mut canvas, &font, score_pos, font_color, &format!("{:08}", score)).expect("Can't render font");
+        render::font(&mut canvas, &font, highscore_pos, font_color, &format!("{:08}", highscore))
             .expect("Can't render font");
         field.render(&mut canvas, field_bg_color, ROUND_RADIUS).expect("Can't draw field");
         basket.render(&mut canvas, field_bg_color, ROUND_RADIUS).expect("Can't draw basket");
@@ -140,8 +142,7 @@ fn main() {
                 .expect("Can't draw rounded rect");
             render::fill_rounded_rect(&mut canvas, bp3, bp4, BIG_ROUND_RADIUS, bg_color)
                 .expect("Can't draw rounded rect");
-            render::render_font(&mut canvas, &font_big, gameover_pos, font_color, "GAME OVER")
-                .expect("Can't render font");
+            render::font(&mut canvas, &font_big, gameover_pos, font_color, "GAME OVER").expect("Can't render font");
         }
         if let Some(figure) = &current_figure {
             figure
@@ -155,13 +156,6 @@ fn main() {
                 .expect("Can't draw figure");
         }
         canvas.present();
-        // calc elapsed time
-        let current_time = SystemTime::now();
-        let elapsed = match current_time.duration_since(last_time) {
-            Ok(n) => n.subsec_nanos(),
-            Err(_) => 0,
-        };
-        last_time = current_time;
 
         // events
         for event in event_pump.poll_iter() {
@@ -211,8 +205,18 @@ fn main() {
         // update highscore
         highscore = highscore.max(score);
 
+        // fps counter
+        let current_time = timer.ticks();
+        elapsed = current_time - last_time;
+        last_time = current_time;
+
         // sleep
-        std::thread::sleep(Duration::new(0, (1_000_000_000 - WTF_CONST * elapsed) / FPS));
+        let sleep_time = if elapsed < 1000 / FPS {
+            1000 / FPS - elapsed
+        } else {
+            1000 / FPS
+        };
+        timer.delay(sleep_time);
     }
 
     save_highscore(HIGHSCORE_FILE, highscore);
