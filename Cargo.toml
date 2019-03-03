@@ -7,3 +7,6 @@ edition = "2018"
 [dependencies.sdl2]
 features = ["ttf"]
 version = "0.32"
+
+[dependencies]
+tini = { git = "https://github.com/pinecrew/tini" }

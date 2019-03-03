@@ -303,14 +303,16 @@ impl Figure {
         pos: Coord,
         size: Coord,
         sep: Coord,
+        alpha: u8,
         radius: i16,
     ) -> Result<(), String> {
         let (x_sep, y_sep) = (sep.x, sep.y);
         let (w, h) = (size.x + x_sep, size.y + x_sep);
         let (x_shift, y_shift) = (pos.x, pos.y);
+        let color = Color::RGBA(self.color.r, self.color.g, self.color.b, alpha);
         for c in &self.blocks {
             let (xp, yp) = (c.x * w + x_shift, c.y * h + y_shift);
-            fill_rounded_rect(canvas, coord!(xp, yp), coord!(xp + w - x_sep, yp + h - y_sep), radius, self.color)?;
+            fill_rounded_rect(canvas, coord!(xp, yp), coord!(xp + w - x_sep, yp + h - y_sep), radius, color)?;
         }
         Ok(())
     }

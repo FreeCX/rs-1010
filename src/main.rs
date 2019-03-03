@@ -1,12 +1,12 @@
 #![windows_subsystem = "windows"]
 #![allow(unused_assignments)]
 extern crate sdl2;
+extern crate tini;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
-use std::fs::File;
-use std::io::prelude::{Read, Write};
+use tini::Ini;
 
 #[macro_use]
 mod extra;
@@ -14,26 +14,19 @@ mod game;
 mod random;
 mod render;
 
-fn load_highscore(filename: &str) -> u32 {
-    if let Ok(mut file) = File::open(filename) {
-        let mut buffer = String::new();
-        file.read_to_string(&mut buffer).unwrap();
-        buffer.parse().unwrap_or(0)
-    } else {
-        0
-    }
-}
-
-fn save_highscore(filename: &str, score: u32) {
-    if let Ok(mut file) = File::create(filename) {
-        let _ = write!(&mut file, "{}", score);
-    }
-}
-
 fn main() {
     // consts block
+    const DEFAULT_CONFIG: &'static str = r#"
+        [config]
+        magnetization = true
+        blend = true
+        alpha = 150
+        fps = 30
+        [score]
+        value = 0
+    "#;
     const FONT_FILE: &'static str = "./resources/FiraMono-Regular.ttf";
-    const HIGHSCORE_FILE: &'static str = "gamescore.txt";
+    const CONFIG_FILE: &'static str = "./resources/config.ini";
     const GAME_TITLE: &'static str = "1010";
     const MILLISECOND: u32 = 1000;
     const LINE_MULTIPLIER: u32 = 10;
@@ -54,7 +47,14 @@ fn main() {
     const FONT_HEIGHT: i16 = FONT_DEF_SIZE as i16 + 2;
     const W_WIDTH: u32 = FIELD_WIDTH + BASKET_LEN;
     const W_HEIGHT: u32 = FIELD_WIDTH;
-    const FPS: u32 = 30;
+
+    // load game config
+    let config = match Ini::from_file(CONFIG_FILE) {
+        Ok(value) => value,
+        Err(_) => Ini::from_buffer(DEFAULT_CONFIG),
+    };
+    let magnetization = config.get("config", "magnetization").unwrap_or(true);
+    let alpha_value = config.get("config", "alpha").unwrap_or(150);
 
     // game params
     let figures = vec![
@@ -93,10 +93,10 @@ fn main() {
     let text_pos = coord!(FIELD_WIDTH as i16, FIELD_SHIFT - 5);
     let score_pos = text_pos + coord!(0, FONT_HEIGHT);
     let highscore_pos = score_pos + coord!(0, FONT_HEIGHT);
-    let mut figure_pos = coord!(0, 0);
     let mut mouse_pos = coord!(0, 0);
+    let mut figure_pos = coord!(0, 0);
 
-    let mut highscore: u32 = load_highscore(HIGHSCORE_FILE);
+    let mut highscore = config.get("score", "value").unwrap_or(0);
     let mut score: u32 = 0;
     // game over block
     let mut gameover_flag = false;
@@ -118,6 +118,11 @@ fn main() {
     let font = ttf_context.load_font(FONT_FILE, FONT_DEF_SIZE).expect("Can't load font");
     let font_big = ttf_context.load_font(FONT_FILE, FONT_BIG_SIZE).expect("Can't load font");
 
+    // turn on alpha channel
+    if config.get("config", "blend").unwrap_or(true) {
+        canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
+    }
+
     // game objects
     let mut current_figure: Option<game::Figure> = None;
     let mut field = game::Field::init_square(FIELD_SIZE, TILE_SIZE_1, TILE_SEP_1, field_pos);
@@ -127,7 +132,8 @@ fn main() {
     // fill basket by random figures
     basket.fill(&figures);
 
-    // fps
+    // fps block
+    let fps = config.get("config", "fps").unwrap_or(30);
     let mut elapsed = 0;
     let mut last_time = 0;
 
@@ -155,9 +161,12 @@ fn main() {
             let size_1 = coord!(TILE_SIZE_1 as i16, TILE_SIZE_1 as i16);
             let size_2 = coord!(TILE_SIZE_2 as i16, TILE_SIZE_2 as i16);
             let sep = coord!(TILE_SEP_1 as i16, TILE_SEP_1 as i16);
-            figure_pos =
-                if field.point_in(&mouse_pos) { field.position_in(&mouse_pos, &figure) } else { mouse_pos - size_2 };
-            figure.render(&mut canvas, figure_pos, size_1, sep, ROUND_RADIUS).expect("Can't draw figure");
+            figure_pos = if field.point_in(&mouse_pos) && magnetization {
+                field.position_in(&mouse_pos, &figure)
+            } else {
+                mouse_pos - size_2
+            };
+            figure.render(&mut canvas, figure_pos, size_1, sep, alpha_value, ROUND_RADIUS).expect("Can't draw figure");
         }
         canvas.present();
 
@@ -181,7 +190,8 @@ fn main() {
                     // figure set | return
                     current_figure = match current_figure {
                         Some(ref figure) => {
-                            if !field.set_figure(&figure_pos, &figure) {
+                            let sel_pos = if magnetization { figure_pos } else { mouse_pos };
+                            if !field.set_figure(&sel_pos, &figure) {
                                 basket.ret(figure.clone());
                             } else {
                                 score += figure.blocks();
@@ -217,9 +227,12 @@ fn main() {
         last_time = current_time;
 
         // sleep
-        let sleep_time = if elapsed < MILLISECOND / FPS { MILLISECOND / FPS - elapsed } else { MILLISECOND / FPS };
-        timer.delay(sleep_time);
+        let sleep_time = if elapsed < MILLISECOND / fps { MILLISECOND / fps - elapsed } else { MILLISECOND / fps };
+        if sleep_time > 0 {
+            timer.delay(sleep_time);
+        }
     }
 
-    save_highscore(HIGHSCORE_FILE, highscore);
+    let config = config.section("score").item("value", &format!("{}", highscore));
+    config.to_file(CONFIG_FILE).expect("Can't write config file");
 }

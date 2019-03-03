@@ -1,4 +1,4 @@
+/resources/config.ini
 /target
 **/*.rs.bk
 *.lock
-gamescore.txt
