@@ -1,4 +1,4 @@
-use std::ops::{ Add, Sub, Mul };
+use std::ops::{Add, Mul, Sub};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Coord {
@@ -34,6 +34,24 @@ macro_rules! normalize {
         }
         if $param > $upper {
             $param = $upper;
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! msg_err {
+    ($data:expr; $wnd:expr, $title:expr) => {
+        match $data {
+            Ok(value) => value,
+            Err(err) => {
+                sdl2::messagebox::show_simple_message_box(
+                    sdl2::messagebox::MessageBoxFlag::ERROR,
+                    $title,
+                    &format!("{}", err),
+                    $wnd,
+                ).unwrap();
+                panic!(err);
+            }
         }
     };
 }

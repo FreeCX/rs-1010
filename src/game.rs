@@ -10,7 +10,7 @@ use std::time::SystemTime;
 #[derive(Clone, Copy)]
 pub struct Lines {
     pub x: u32,
-    pub y: u32
+    pub y: u32,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -29,7 +29,7 @@ pub struct Field {
     colors: HashMap<Coord, Color>,
     cur_state: State,
     all_state: Vec<State>,
-    lines: Lines
+    lines: Lines,
 }
 
 #[derive(Clone, Eq, PartialEq)]
@@ -73,7 +73,7 @@ impl Field {
             colors: HashMap::new(),
             cur_state: State::Wait,
             all_state: Vec::new(),
-            lines: Lines::empty()
+            lines: Lines::empty(),
         }
     }
 
@@ -409,9 +409,9 @@ impl BasketSystem {
 
     pub fn fill(&mut self, figures: &Vec<Figure>) {
         let size = figures.len();
-        let idx = [self.rnd.rand() as usize % size, self.rnd.rand() as usize % size, self.rnd.rand() as usize % size];
-        for (index, item) in idx.iter().enumerate() {
-            self.basket[index].push(figures[*item].clone());
+        for index in 0..self.basket.len() {
+            let item = self.rnd.rand() as usize % size;
+            self.basket[index].push(figures[item].clone());
         }
     }
 

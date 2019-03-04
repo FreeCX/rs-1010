@@ -27,7 +27,7 @@ fn main() {
     "#;
     const FONT_FILE: &'static str = "./resources/FiraMono-Regular.ttf";
     const CONFIG_FILE: &'static str = "./resources/config.ini";
-    const GAME_TITLE: &'static str = "1010";
+    const GT: &'static str = "1010";
     const MILLISECOND: u32 = 1000;
     const LINE_MULTIPLIER: u32 = 10;
     const BASKET_COUNT: u8 = 3;
@@ -111,12 +111,12 @@ fn main() {
     let sdl_context = sdl2::init().expect("Can't init sdl2 context");
     let video_subsystem = sdl_context.video().expect("Can't create video subsystem");
     let window =
-        video_subsystem.window(GAME_TITLE, W_WIDTH, W_HEIGHT).position_centered().build().expect("Can't create window");
-    let mut timer = sdl_context.timer().expect("Can't init timer");
+        video_subsystem.window(GT, W_WIDTH, W_HEIGHT).position_centered().build().expect("Can't create window");
     let mut canvas = window.into_canvas().build().expect("Can't get canvas");
-    let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string()).expect("Can't create ttf context");
-    let font = ttf_context.load_font(FONT_FILE, FONT_DEF_SIZE).expect("Can't load font");
-    let font_big = ttf_context.load_font(FONT_FILE, FONT_BIG_SIZE).expect("Can't load font");
+    let mut timer = msg_err!(sdl_context.timer(); canvas.window(), GT);
+    let ttf_context = msg_err!(sdl2::ttf::init().map_err(|e| e.to_string()); canvas.window(), GT);
+    let font = msg_err!(ttf_context.load_font(FONT_FILE, FONT_DEF_SIZE); canvas.window(), GT);
+    let font_big = msg_err!(ttf_context.load_font(FONT_FILE, FONT_BIG_SIZE); canvas.window(), GT);
 
     // turn on alpha channel
     if config.get("config", "blend").unwrap_or(true) {
@@ -144,18 +144,18 @@ fn main() {
         // render
         canvas.set_draw_color(bg_color);
         canvas.clear();
-        render::font(&mut canvas, &font, text_pos, font_color, "score").expect("Can't render font");
-        render::font(&mut canvas, &font, score_pos, font_color, &format!("{:08}", score)).expect("Can't render font");
-        render::font(&mut canvas, &font, highscore_pos, font_color, &format!("{:08}", highscore))
-            .expect("Can't render font");
-        field.render(&mut canvas, field_bg_color, ROUND_RADIUS).expect("Can't draw field");
-        basket.render(&mut canvas, field_bg_color, ROUND_RADIUS).expect("Can't draw basket");
+        msg_err!(render::font(&mut canvas, &font, text_pos, font_color, "score"); canvas.window(), GT);
+        msg_err!(render::font(&mut canvas, &font, score_pos, font_color, &format!("{:08}", score));
+                 canvas.window(), GT);
+        msg_err!(render::font(&mut canvas, &font, highscore_pos, font_color, &format!("{:08}", highscore));
+                 canvas.window(), GT);
+        msg_err!(field.render(&mut canvas, field_bg_color, ROUND_RADIUS); canvas.window(), GT);
+        msg_err!(basket.render(&mut canvas, field_bg_color, ROUND_RADIUS); canvas.window(), GT);
         if gameover_flag {
-            render::fill_rounded_rect(&mut canvas, bp1, bp2, BIG_ROUND_RADIUS, border_color)
-                .expect("Can't draw rounded rect");
-            render::fill_rounded_rect(&mut canvas, bp3, bp4, BIG_ROUND_RADIUS, bg_color)
-                .expect("Can't draw rounded rect");
-            render::font(&mut canvas, &font_big, gameover_pos, font_color, "GAME OVER").expect("Can't render font");
+            msg_err!(render::fill_rounded_rect(&mut canvas, bp1, bp2, BIG_ROUND_RADIUS, border_color);
+                     canvas.window(), GT);
+            msg_err!(render::fill_rounded_rect(&mut canvas, bp3, bp4, BIG_ROUND_RADIUS, bg_color); canvas.window(), GT);
+            msg_err!(render::font(&mut canvas, &font_big, gameover_pos, font_color, "GAME OVER"); canvas.window(), GT);
         }
         if let Some(figure) = &current_figure {
             let size_1 = coord!(TILE_SIZE_1 as i16, TILE_SIZE_1 as i16);
@@ -166,7 +166,8 @@ fn main() {
             } else {
                 mouse_pos - size_2
             };
-            figure.render(&mut canvas, figure_pos, size_1, sep, alpha_value, ROUND_RADIUS).expect("Can't draw figure");
+            msg_err!(figure.render(&mut canvas, figure_pos, size_1, sep, alpha_value, ROUND_RADIUS);
+                     canvas.window(), GT);
         }
         canvas.present();
 
@@ -234,5 +235,5 @@ fn main() {
     }
 
     let config = config.section("score").item("value", &format!("{}", highscore));
-    config.to_file(CONFIG_FILE).expect("Can't write config file");
+    msg_err!(config.to_file(CONFIG_FILE); canvas.window(), GT);
 }
