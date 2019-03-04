@@ -10,3 +10,12 @@ version = "0.32"
 
 [dependencies]
 tini = { git = "https://github.com/pinecrew/tini" }
+
+[profile.release]
+debug = false
+opt-level = 3
+rpath = false
+lto = true
+debug-assertions = false
+overflow-checks = false
+panic = 'unwind'
