@@ -6,6 +6,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
+use std::time::SystemTime;
 use tini::Ini;
 
 #[macro_use]
@@ -90,9 +91,9 @@ fn main() {
     let basket_pos = coord!(FIELD_WIDTH as i16, 69);
     let basket_shift = coord!(0, BASKET_LEN as i16);
     let field_pos = coord!(FIELD_SHIFT, FIELD_SHIFT);
-    let text_pos = coord!(FIELD_WIDTH as i16, FIELD_SHIFT - 5);
-    let score_pos = text_pos + coord!(0, FONT_HEIGHT);
-    let highscore_pos = score_pos + coord!(0, FONT_HEIGHT);
+    let score_pos = coord!(FIELD_WIDTH as i16, FIELD_SHIFT - 3);
+    let highscore_pos = score_pos + coord!(0, FONT_HEIGHT - 1);
+    let timer_pos = highscore_pos + coord!(0, FONT_HEIGHT - 1);
     let mut mouse_pos = coord!(0, 0);
     let mut figure_pos = coord!(0, 0);
 
@@ -137,6 +138,10 @@ fn main() {
     let mut elapsed = 0;
     let mut last_time = 0;
 
+    // game timer
+    let mut game_start = SystemTime::now();
+    let mut game_stop = game_start.elapsed();
+
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
         last_time = timer.ticks();
@@ -144,10 +149,11 @@ fn main() {
         // render
         canvas.set_draw_color(bg_color);
         canvas.clear();
-        msg_err!(render::font(&mut canvas, &font, text_pos, font_color, "score"); canvas.window(), GT);
         msg_err!(render::font(&mut canvas, &font, score_pos, font_color, &format!("{:08}", score));
                  canvas.window(), GT);
         msg_err!(render::font(&mut canvas, &font, highscore_pos, font_color, &format!("{:08}", highscore));
+                 canvas.window(), GT);
+        msg_err!(render::font(&mut canvas, &font, timer_pos, font_color, &extra::as_time_str(&game_stop));
                  canvas.window(), GT);
         msg_err!(field.render(&mut canvas, field_bg_color, ROUND_RADIUS); canvas.window(), GT);
         msg_err!(basket.render(&mut canvas, field_bg_color, ROUND_RADIUS); canvas.window(), GT);
@@ -156,6 +162,8 @@ fn main() {
                      canvas.window(), GT);
             msg_err!(render::fill_rounded_rect(&mut canvas, bp3, bp4, BIG_ROUND_RADIUS, bg_color); canvas.window(), GT);
             msg_err!(render::font(&mut canvas, &font_big, gameover_pos, font_color, "GAME OVER"); canvas.window(), GT);
+        } else {
+            game_stop = game_start.elapsed();
         }
         if let Some(figure) = &current_figure {
             let size_1 = coord!(TILE_SIZE_1 as i16, TILE_SIZE_1 as i16);
@@ -186,6 +194,7 @@ fn main() {
                         basket.fill(&figures);
                         field.clear();
                         score = 0;
+                        game_start = SystemTime::now();
                         continue;
                     }
                     // figure set | return
