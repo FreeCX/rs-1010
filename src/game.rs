@@ -87,7 +87,7 @@ impl Field {
         coord!(xi, yi)
     }
 
-    pub fn position_in(&self, pos: &Coord, figure: &Figure) -> Coord {
+    pub fn get_point_in(&self, pos: &Coord, figure: &Figure) -> Coord {
         let mut norm = self.get_cell_index(pos);
         let m_val = figure.max();
         normalize!(norm.x; 0, self.field_size.x - m_val.x - 1);
@@ -96,7 +96,7 @@ impl Field {
         norm
     }
 
-    pub fn point_in(&self, pos: &Coord) -> bool {
+    pub fn is_point_in(&self, pos: &Coord) -> bool {
         let nx = pos.x as f32 - self.pos.x as f32;
         let ny = pos.y as f32 - self.pos.y as f32;
         let x = (nx / (self.tile_size.x as f32 + self.tile_sep.x as f32)).floor() as i16;
@@ -126,9 +126,9 @@ impl Field {
 
     #[cfg(debug_assertion)]
     pub fn set_vec(&mut self, v: Vec<Vec<u8>>, c: Color) {
-        for (y, row) in v.iter().enumerate() {
-            for (x, item) in row.iter().enumerate() {
-                if *item == 1 {
+        for (y, row) in v.into_iter().enumerate() {
+            for (x, item) in row.into_iter().enumerate() {
+                if item == 1 {
                     let pos = coord!(x as i16, y as i16);
                     self.field.insert(pos);
                     self.colors.insert(pos, c);

@@ -1,7 +1,7 @@
 use std::ops::{Add, Mul, Sub};
 use std::time::{Duration, SystemTimeError};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Coord {
     pub x: i16,
     pub y: i16,
@@ -40,23 +40,26 @@ macro_rules! normalize {
 }
 
 #[macro_export]
-macro_rules! msg_err {
+macro_rules! msg {
     ($data:expr; $wnd:expr, $title:expr) => {
         match $data {
             Ok(value) => value,
             Err(err) => {
+                // show error dialog box and panic
                 sdl2::messagebox::show_simple_message_box(
                     sdl2::messagebox::MessageBoxFlag::ERROR,
                     $title,
                     &format!("{}", err),
                     $wnd,
-                ).unwrap();
+                )
+                .unwrap_or(());
                 panic!(err);
             }
         }
     };
 }
 
+// convert Duration to HH:MM:SS
 pub fn as_time_str(duration: &Result<Duration, SystemTimeError>) -> String {
     let secs = duration.clone().unwrap_or(Duration::from_secs(0)).as_secs();
     let (hours, minutes, seconds) = (secs / (60 * 60), secs / 60, secs % 60);

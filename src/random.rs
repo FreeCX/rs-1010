@@ -1,3 +1,4 @@
+// https://en.wikipedia.org/wiki/Xorshift
 pub struct Random {
     x: u32,
     y: u32,
@@ -14,6 +15,7 @@ impl Random {
             w: 88_675_123,
         }
     }
+
     pub fn rand(&mut self) -> u32 {
         let t = self.x ^ (self.x << 11);
         self.x = self.y;
