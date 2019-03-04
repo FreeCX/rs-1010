@@ -1,4 +1,5 @@
 use std::ops::{Add, Mul, Sub};
+use std::time::{Duration, SystemTimeError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Coord {
@@ -54,6 +55,12 @@ macro_rules! msg_err {
             }
         }
     };
+}
+
+pub fn as_time_str(duration: &Result<Duration, SystemTimeError>) -> String {
+    let secs = duration.clone().unwrap_or(Duration::from_secs(0)).as_secs();
+    let (hours, minutes, seconds) = (secs / (60 * 60), secs / 60, secs % 60);
+    format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
 }
 
 impl Add for Coord {
