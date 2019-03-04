@@ -124,6 +124,19 @@ impl Field {
         not_intersect
     }
 
+    #[cfg(debug_assertion)]
+    pub fn set_vec(&mut self, v: Vec<Vec<u8>>, c: Color) {
+        for (y, row) in v.iter().enumerate() {
+            for (x, item) in row.iter().enumerate() {
+                if *item == 1 {
+                    let pos = coord!(x as i16, y as i16);
+                    self.field.insert(pos);
+                    self.colors.insert(pos, c);
+                }
+            }
+        }
+    }
+
     fn check_line_h(&self, index: u8) -> Option<bool> {
         if index > self.field_size.x as u8 {
             return None;
@@ -412,6 +425,13 @@ impl BasketSystem {
         for index in 0..self.basket.len() {
             let item = self.rnd.rand() as usize % size;
             self.basket[index].push(figures[item].clone());
+        }
+    }
+
+    #[cfg(debug_assertion)]
+    pub fn set_vec(&mut self, figures: Vec<Figure>) {
+        for (index, f) in figures.into_iter().enumerate() {
+            self.basket[index].push(f);
         }
     }
 

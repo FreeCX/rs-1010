@@ -206,11 +206,6 @@ fn main() {
             }
         }
 
-        // check gameover
-        if !field.can_set(basket.figures()) && current_figure == None {
-            gameover_flag = true;
-            current_figure = None;
-        }
         // calculate score
         if let Some(lines) = field.next_state() {
             score += (lines.x + lines.y + lines.x * lines.y) * LINE_MULTIPLIER;
@@ -221,6 +216,11 @@ fn main() {
         }
         // update highscore
         highscore = highscore.max(score);
+        // check gameover
+        if !field.can_set(basket.figures()) && current_figure == None {
+            gameover_flag = true;
+            current_figure = None;
+        }
 
         // fps counter
         let current_time = timer.ticks();
