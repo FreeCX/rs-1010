@@ -1,6 +1,6 @@
 [package]
 name = "rs-1010"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Alexey Golubev <dr.freecx@gmail.com>"]
 edition = "2018"
 
@@ -10,6 +10,7 @@ version = "0.32"
 
 [dependencies]
 tini = { git = "https://github.com/pinecrew/tini" }
+backtrace = "0.3"
 
 [profile.release]
 debug = false
@@ -18,4 +19,3 @@ rpath = false
 lto = true
 debug-assertions = false
 overflow-checks = false
-panic = 'unwind'

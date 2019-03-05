@@ -62,7 +62,7 @@ macro_rules! msg {
 // convert Duration to HH:MM:SS
 pub fn as_time_str(duration: &Result<Duration, SystemTimeError>) -> String {
     let secs = duration.clone().unwrap_or(Duration::from_secs(0)).as_secs();
-    let (hours, minutes, seconds) = (secs / (60 * 60), secs / 60, secs % 60);
+    let (hours, minutes, seconds) = (secs / (60 * 60), (secs / 60) % 60, secs % 60);
     format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
 }
 
