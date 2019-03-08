@@ -74,11 +74,35 @@ impl Add for Coord {
     }
 }
 
+impl<T> Add<T> for Coord
+where
+    T: Into<i16>,
+{
+    type Output = Self;
+
+    fn add(self, k: T) -> Self::Output {
+        let v = k.into();
+        coord!(self.x + v, self.y + v)
+    }
+}
+
 impl Sub for Coord {
     type Output = Self;
 
     fn sub(self, rhs: Self::Output) -> Self::Output {
         coord!(self.x - rhs.x, self.y - rhs.y)
+    }
+}
+
+impl<T> Sub<T> for Coord
+where
+    T: Into<i16>,
+{
+    type Output = Self;
+
+    fn sub(self, k: T) -> Self::Output {
+        let v = k.into();
+        coord!(self.x - v, self.y - v)
     }
 }
 
@@ -90,10 +114,14 @@ impl Mul for Coord {
     }
 }
 
-impl Mul<i16> for Coord {
+impl<T> Mul<T> for Coord
+where
+    T: Into<i16>,
+{
     type Output = Self;
 
-    fn mul(self, k: i16) -> Self::Output {
-        coord!(self.x * k, self.y * k)
+    fn mul(self, k: T) -> Self::Output {
+        let v = k.into();
+        coord!(self.x * v, self.y * v)
     }
 }
