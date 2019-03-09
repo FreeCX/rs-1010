@@ -306,7 +306,7 @@ fn main() {
                 Event::KeyDown { scancode: Some(value), .. } => {
                     if name_input_flag {
                         match value {
-                            Scancode::Return => {
+                            Scancode::Return | Scancode::KpEnter => {
                                 score_table.push(user_name.clone(), score, extra::as_time_str(&game_stop));
                                 user_name.clear();
                                 name_input_flag = false;

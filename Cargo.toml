@@ -17,7 +17,7 @@ backtrace = "0.3"
 winres = "0.1"
 
 [package.metadata.winres]
-OriginalFilename = "rs-1010.exe"
+LegalCopyright = "https://github.com/FreeCX/rs-1010"
 
 [profile.release]
 debug = false
