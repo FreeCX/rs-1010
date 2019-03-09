@@ -1,3 +1,5 @@
+#[cfg(windows)]
+extern crate winres;
 use std::collections::HashMap;
 use std::process::Command;
 use std::{fs::File, io::Write};
@@ -26,6 +28,7 @@ fn parse(s: String) -> HashMap<String, String> {
 }
 
 fn main() {
+    // generate build info
     let mut source_code = "#![allow(dead_code)]\n".to_string();
     for (prefix, executable) in [("RUST", "rustc"), ("CARGO", "cargo")].iter() {
         let iterator = parse(execute(executable));
@@ -38,4 +41,12 @@ fn main() {
     File::create("src/build.rs")
         .and_then(|mut file| write!(file, "{}", source_code))
         .unwrap();
+
+    // set icon for windows binary
+    #[cfg(windows)]
+    {
+        let mut res = winres::WindowsResource::new();
+        res.set_icon("resources/icon.ico");
+        res.compile().unwrap();
+    }
 }

@@ -85,6 +85,7 @@ fn main() {
     // default config
     const DEFAULT_CONFIG: &'static str = r#"
     [config]
+    show_highscore_at_start = false
     magnetization = true
     blend = true
     alpha = 150
@@ -195,7 +196,7 @@ fn main() {
     let mut highscore = score_table.get_highscore();
     let mut score: u32 = 0;
     // game over params
-    let mut gameover_flag = false;
+    let mut gameover_flag = config.get("config", "show_highscore_at_start").unwrap_or(false);
     let mut user_name = String::new();
     let game_over = "GAME OVER";
     // rendering params
