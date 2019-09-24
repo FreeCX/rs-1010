@@ -1,5 +1,4 @@
 #![windows_subsystem = "windows"]
-#![allow(unused_assignments)]
 extern crate backtrace;
 extern crate sdl2;
 extern crate tini;
@@ -220,8 +219,7 @@ fn main() {
 
     // fps block
     let fps = config.get("config", "fps").unwrap_or(30);
-    let mut elapsed = 0;
-    let mut last_time = 0;
+    let mut last_time = timer.ticks();
 
     // game timer
     let mut game_start = SystemTime::now();
@@ -229,8 +227,6 @@ fn main() {
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
-        last_time = timer.ticks();
-
         // render text, field & basket
         canvas.set_draw_color(bg_color);
         canvas.clear();
@@ -378,7 +374,7 @@ fn main() {
 
         // fps counter
         let current_time = timer.ticks();
-        elapsed = current_time - last_time;
+        let elapsed = current_time - last_time;
         last_time = current_time;
 
         // sleep
@@ -389,7 +385,7 @@ fn main() {
     }
 
     // add game score when game closed
-    score_table.push("<game-close>".to_string(), score, extra::as_time_str(&game_stop));
+    score_table.push("unknown".to_string(), score, extra::as_time_str(&game_stop));
     // update highscore results
     msg!(score_table.to_config(GAMESCORE_COUNT, config).to_file(CONFIG_FILE); canvas.window(), GT);
 }
