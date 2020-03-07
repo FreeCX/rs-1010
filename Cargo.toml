@@ -7,7 +7,7 @@ build = "build.rs"
 
 [dependencies.sdl2]
 features = ["ttf"]
-version = "0.32"
+version = "0.33"
 
 [dependencies]
 tini = { git = "https://github.com/pinecrew/tini" }
