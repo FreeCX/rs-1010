@@ -1,20 +1,20 @@
 [package]
 name = "rs-1010"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Alexey Golubev <dr.freecx@gmail.com>"]
 edition = "2018"
 build = "build.rs"
 
 [dependencies.sdl2]
 features = ["ttf"]
-version = "0.33"
+version = ">=0.34"
 
 [dependencies]
 tini = { git = "https://github.com/pinecrew/tini" }
-backtrace = "0.3"
+backtrace = ">=0.3"
 
 [target.'cfg(windows)'.build-dependencies]
-winres = "0.1"
+winres = ">=0.1"
 
 [package.metadata.winres]
 LegalCopyright = "https://github.com/FreeCX/rs-1010"

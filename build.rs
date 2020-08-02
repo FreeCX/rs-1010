@@ -2,7 +2,7 @@
 extern crate winres;
 use std::collections::HashMap;
 use std::process::Command;
-use std::{fs::File, io::Write};
+use std::{fs::File, io::Write, fs::read_to_string};
 
 fn execute(cmd: &str) -> String {
     match Command::new(cmd).arg("-vV").output() {
@@ -27,6 +27,27 @@ fn parse(s: String) -> HashMap<String, String> {
     res
 }
 
+fn app_packages() -> String {
+    let mut counter = 0;
+    let mut name = String::new();
+    let mut packages = String::new();
+
+    let data = read_to_string("Cargo.lock").unwrap();
+
+    for line in data.lines() {
+        if line.starts_with("name = ") {
+            name = line[7..].to_string();
+        }
+        if line.starts_with("version =") {
+            // (name, version)
+            packages.push_str(&format!("    ({}, {}),\n", name, &line[10..]));
+            counter += 1;
+        }
+    }
+
+    format!("pub static APP_PACKAGES: [(&'static str, &'static str); {}] = [\n{}];", counter, packages)
+}
+
 fn main() {
     // generate build info
     let mut source_code = "#![allow(dead_code)]\n".to_string();
@@ -38,6 +59,10 @@ fn main() {
             source_code.push_str(&fmt_str);
         }
     }
+
+    // add packages in Cargo.lock
+    source_code.push_str(&app_packages());
+    
     File::create("src/build.rs")
         .and_then(|mut file| write!(file, "{}", source_code))
         .unwrap();

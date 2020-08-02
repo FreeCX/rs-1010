@@ -22,6 +22,7 @@ mod score;
 // handle panic and write crash repot to file
 fn panic_handler(panic_info: &panic::PanicInfo) {
     let mut buffer = String::new();
+
     buffer.push_str(&format!(
         "The application had a problem and crashed.\n\
          To help us diagnose the problem you can send us a crash report.\n\n\
@@ -31,11 +32,10 @@ fn panic_handler(panic_info: &panic::PanicInfo) {
          Thank you!\n\n\
          --- crash report start ---\n\
          name: {}\n\
-         version: {}\n\n\
+         version: {}\n\
          compiler: {}\n\
          package manager: {}\n\
-         host: {}\n\n\
-         ",
+         host: {}\n",
         env!("CARGO_PKG_AUTHORS"),
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
@@ -43,6 +43,13 @@ fn panic_handler(panic_info: &panic::PanicInfo) {
         build::CARGO_HEADER,
         build::RUST_HOST,
     ));
+
+    buffer.push_str("packages:\n");
+    for (name, version) in build::APP_PACKAGES.iter() {
+        buffer.push_str(&format!("  {} {}\n", name, version));
+    }
+    buffer.push_str("\n");
+
     match panic_info.location() {
         Some(location) => {
             let info = format!("panic occurred in file '{}' at line {}\n", location.file(), location.line());
@@ -50,7 +57,9 @@ fn panic_handler(panic_info: &panic::PanicInfo) {
         }
         None => buffer.push_str("panic occurred but can't get location information...\n"),
     }
+    
     buffer.push_str("stack backtrace:\n");
+    
     let mut index = 0;
     backtrace::trace(|frame| {
         let ip = frame.ip();
@@ -71,7 +80,9 @@ fn panic_handler(panic_info: &panic::PanicInfo) {
         });
         true
     });
+
     buffer.push_str("--- crash report end ---");
+    
     File::create("crash.log")
         .and_then(|mut file| write!(file, "{}", buffer))
         .unwrap_or_else(|_| println!("{}", buffer));
