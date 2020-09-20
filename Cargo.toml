@@ -10,7 +10,7 @@ features = ["ttf"]
 version = ">=0.34"
 
 [dependencies]
-tini = { git = "https://github.com/pinecrew/tini" }
+tini = "0.4"
 backtrace = ">=0.3"
 
 [target.'cfg(windows)'.build-dependencies]
