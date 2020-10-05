@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul, Sub};
+use std::ops::{Add, Mul, Sub, Shr};
 use std::time::{Duration, SystemTimeError};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -66,11 +66,31 @@ pub fn as_time_str(duration: &Result<Duration, SystemTimeError>) -> String {
     format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
 }
 
+impl Coord {
+    pub fn zero() -> Self {
+        coord!(0, 0)
+    }
+
+    pub fn floor_frac(self, rhs: Coord) -> Self {
+        let xi = (self.x as f32 / rhs.x as f32).floor() as i16;
+        let yi = (self.y as f32 / rhs.y as f32).floor() as i16;
+        coord!(xi, yi)
+    }
+
+    pub fn normalize(mut self, lower: Coord, upper: Coord) -> Self {
+        normalize!(self.x; lower.x, upper.x);
+        normalize!(self.y; lower.y, upper.y);
+        self
+    }
+}
+
 impl Add for Coord {
     type Output = Self;
 
-    fn add(self, rhs: Self::Output) -> Self::Output {
-        coord!(self.x + rhs.x, self.y + rhs.y)
+    fn add(mut self, rhs: Self::Output) -> Self::Output {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self
     }
 }
 
@@ -80,17 +100,21 @@ where
 {
     type Output = Self;
 
-    fn add(self, k: T) -> Self::Output {
+    fn add(mut self, k: T) -> Self::Output {
         let v = k.into();
-        coord!(self.x + v, self.y + v)
+        self.x += v;
+        self.y += v;
+        self
     }
 }
 
 impl Sub for Coord {
     type Output = Self;
 
-    fn sub(self, rhs: Self::Output) -> Self::Output {
-        coord!(self.x - rhs.x, self.y - rhs.y)
+    fn sub(mut self, rhs: Self::Output) -> Self::Output {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+        self
     }
 }
 
@@ -100,17 +124,21 @@ where
 {
     type Output = Self;
 
-    fn sub(self, k: T) -> Self::Output {
+    fn sub(mut self, k: T) -> Self::Output {
         let v = k.into();
-        coord!(self.x - v, self.y - v)
+        self.x -= v;
+        self.y -= v;
+        self
     }
 }
 
 impl Mul for Coord {
     type Output = Self;
 
-    fn mul(self, k: Self) -> Self::Output {
-        coord!(self.x * k.x, self.y * k.y)
+    fn mul(mut self, k: Self) -> Self::Output {
+        self.x *= k.x;
+        self.y *= k.y;
+        self
     }
 }
 
@@ -120,8 +148,24 @@ where
 {
     type Output = Self;
 
-    fn mul(self, k: T) -> Self::Output {
+    fn mul(mut self, k: T) -> Self::Output {
         let v = k.into();
-        coord!(self.x * v, self.y * v)
+        self.x *= v;
+        self.y *= v;
+        self
+    }
+}
+
+impl<T> Shr<T> for Coord
+where
+    T: Into<i16>
+{
+    type Output = Self;
+
+    fn shr(mut self, k: T) -> Self::Output {
+        let v = k.into();
+        self.x >>= v;
+        self.y >>= v;
+        self
     }
 }
