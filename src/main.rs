@@ -282,7 +282,7 @@ fn main() {
             let p3 = p1 + border;
             let p4 = p2 - border;
             let fp2 = fp1 + coord!(0, fsy as i16 - border);
-            let input_name = format!("ваше имя: {}", user_name);
+            let input_name = format!("your name: {}", user_name);
             msg!(render::fill_rounded_rect(&mut canvas, p1, p2, BIG_ROUND_RADIUS, border_color); canvas.window(), GT);
             msg!(render::fill_rounded_rect(&mut canvas, p3, p4, BIG_ROUND_RADIUS, bg_color); canvas.window(), GT);
             msg!(render::font(&mut canvas, &font_big, fp1, font_color, game_over); canvas.window(), GT);
