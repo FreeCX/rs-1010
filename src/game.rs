@@ -78,30 +78,18 @@ impl Field {
     }
 
     pub fn get_cell_index(&self, pos: &Coord) -> Coord {
-        let nx = pos.x as f32 - self.pos.x as f32;
-        let ny = pos.y as f32 - self.pos.y as f32;
-        let mut xi = (nx / (self.tile_size.x as f32 + self.tile_sep.x as f32)).floor() as i16;
-        let mut yi = (ny / (self.tile_size.y as f32 + self.tile_sep.y as f32)).floor() as i16;
-        normalize!(xi; 0, self.field_size.x);
-        normalize!(yi; 0, self.field_size.y);
-        coord!(xi, yi)
+        (*pos - self.pos).floor_frac(self.tile_size + self.tile_sep).normalize(Coord::zero(), self.field_size)
     }
 
     pub fn get_point_in(&self, pos: &Coord, figure: &Figure) -> Coord {
-        let mut norm = self.get_cell_index(pos);
-        let m_val = figure.max();
-        normalize!(norm.x; 0, self.field_size.x - m_val.x - 1);
-        normalize!(norm.y; 0, self.field_size.y - m_val.y - 1);
+        let mut norm = self.get_cell_index(pos).normalize(Coord::zero(), self.field_size - figure.max() - 1_i16);
         norm = norm * (self.tile_size + self.tile_sep) + self.pos;
         norm
     }
 
     pub fn is_point_in(&self, pos: &Coord) -> bool {
-        let nx = pos.x as f32 - self.pos.x as f32;
-        let ny = pos.y as f32 - self.pos.y as f32;
-        let x = (nx / (self.tile_size.x as f32 + self.tile_sep.x as f32)).floor() as i16;
-        let y = (ny / (self.tile_size.y as f32 + self.tile_sep.y as f32)).floor() as i16;
-        x >= 0 && x < self.field_size.x && y >= 0 && y < self.field_size.y
+        let v = (*pos - self.pos).floor_frac(self.tile_size + self.tile_sep);
+        v.x >= 0 && v.x < self.field_size.x && v.y >= 0 && v.y < self.field_size.y
     }
 
     pub fn set_figure(&mut self, pos: &Coord, figure: &Figure) -> bool {
@@ -261,9 +249,6 @@ impl Field {
     }
 
     pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color, radius: i16) -> Result<(), String> {
-        let (x_sep, y_sep) = (self.tile_sep.x, self.tile_sep.y);
-        let (w, h) = (self.tile_size.x + x_sep, self.tile_size.y + x_sep);
-        let (x_shift, y_shift) = (self.pos.x, self.pos.y);
         for y in 0..self.field_size.y {
             for x in 0..self.field_size.x {
                 let pos = coord!(x, y);
@@ -272,8 +257,9 @@ impl Field {
                 } else {
                     empty_field_color
                 };
-                let (xp, yp) = (x * w + x_shift, y * h + y_shift);
-                fill_rounded_rect(canvas, coord!(xp, yp), coord!(xp + w - x_sep, yp + h - y_sep), radius, color)?;
+                let p1 = pos * (self.tile_size + self.tile_sep) + self.pos;
+                let p2 = p1 + self.tile_size;
+                fill_rounded_rect(canvas, p1, p2, radius, color)?;
             }
         }
         Ok(())
@@ -319,13 +305,11 @@ impl Figure {
         alpha: u8,
         radius: i16,
     ) -> Result<(), String> {
-        let (x_sep, y_sep) = (sep.x, sep.y);
-        let (w, h) = (size.x + x_sep, size.y + x_sep);
-        let (x_shift, y_shift) = (pos.x, pos.y);
         let color = Color::RGBA(self.color.r, self.color.g, self.color.b, alpha);
         for c in &self.blocks {
-            let (xp, yp) = (c.x * w + x_shift, c.y * h + y_shift);
-            fill_rounded_rect(canvas, coord!(xp, yp), coord!(xp + w - x_sep, yp + h - y_sep), radius, color)?;
+            let p1 = *c * (size + sep) + pos;
+            let p2 = p1 + size;
+            fill_rounded_rect(canvas, p1, p2, radius, color)?;
         }
         Ok(())
     }
@@ -344,10 +328,7 @@ impl Basket {
 
     pub fn point_in(&self, pos: Coord) -> bool {
         let p1 = self.pos;
-        let p2 = coord!(
-            self.field_size.x * (self.tile_size.x + self.tile_sep.x) + p1.x,
-            self.field_size.y * (self.tile_size.y + self.tile_sep.y) + p1.y
-        );
+        let p2 = self.field_size * (self.tile_size + self.tile_sep) + p1;
         pos.x >= p1.x && pos.x <= p2.x && pos.y >= p1.y && pos.y <= p2.y
     }
 
@@ -365,22 +346,27 @@ impl Basket {
         self.figure.clone()
     }
 
+    pub fn centering(&self, figure: &Figure) -> Coord {
+        (self.field_size - figure.max()) >> 1_i16
+    }
+
     pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color, radius: i16) -> Result<(), String> {
-        let (x_sep, y_sep) = (self.tile_sep.x, self.tile_sep.y);
-        let (w, h) = (self.tile_size.x + x_sep, self.tile_size.y + x_sep);
-        let (x_shift, y_shift) = (self.pos.x, self.pos.y);
+        let wsize = self.tile_size + self.tile_sep;
+        let color = empty_field_color;
         for y in 0..self.field_size.y {
             for x in 0..self.field_size.x {
-                let color = empty_field_color;
-                let (xp, yp) = (x * w + x_shift, y * h + y_shift);
-                fill_rounded_rect(canvas, coord!(xp, yp), coord!(xp + w - x_sep, yp + h - y_sep), radius, color)?;
+                let p1 = coord!(x, y) * wsize + self.pos;
+                let p2 = p1 + wsize - self.tile_sep;
+                fill_rounded_rect(canvas, p1, p2, radius, color)?;
             }
         }
         if let Some(figure) = self.figure.clone() {
             let color = figure.color;
-            for Coord { x, y } in figure.blocks {
-                let (xp, yp) = (x * w + x_shift, y * h + y_shift);
-                fill_rounded_rect(canvas, coord!(xp, yp), coord!(xp + w - x_sep, yp + h - y_sep), radius, color)?;
+            let cen = self.centering(&figure);
+            for pos in figure.blocks {
+                let p1 = (pos + cen) * wsize + self.pos;
+                let p2 = p1 + wsize - self.tile_sep;
+                fill_rounded_rect(canvas, p1, p2, radius, color)?;
             }
         }
         Ok(())
