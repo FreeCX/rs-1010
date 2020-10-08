@@ -25,6 +25,8 @@ macro_rules! coord {
     ($x:expr, $y:expr) => {
         crate::extra::Coord { x: $x, y: $y }
     };
+    ($xy:expr) => { coord!($xy, $xy) };
+    () => { coord!(0, 0) };
 }
 
 #[macro_export]
@@ -67,10 +69,6 @@ pub fn as_time_str(duration: &Result<Duration, SystemTimeError>) -> String {
 }
 
 impl Coord {
-    pub fn zero() -> Self {
-        coord!(0, 0)
-    }
-
     pub fn floor_frac(self, rhs: Coord) -> Self {
         let xi = (self.x as f32 / rhs.x as f32).floor() as i16;
         let yi = (self.y as f32 / rhs.y as f32).floor() as i16;

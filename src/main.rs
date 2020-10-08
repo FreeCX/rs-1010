@@ -2,14 +2,17 @@
 extern crate backtrace;
 extern crate sdl2;
 extern crate tini;
+
+use std::panic;
+use std::time::SystemTime;
+
 use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
-use std::panic;
-use std::time::SystemTime;
-use std::{fs::File, io::Write};
 use tini::Ini;
+
+use crate::consts::*;
 
 #[macro_use]
 mod extra;
@@ -18,125 +21,12 @@ mod game;
 mod random;
 mod render;
 mod score;
-
-// handle panic and write crash repot to file
-fn panic_handler(panic_info: &panic::PanicInfo) {
-    let mut buffer = String::new();
-
-    buffer.push_str(&format!(
-        "The application had a problem and crashed.\n\
-         To help us diagnose the problem you can send us a crash report.\n\n\
-         Authors: {}\n\n\
-         We take privacy seriously, and do not perform any automated error collection.\n\
-         In order to improve the software, we rely on people to submit reports.\n\n\
-         Thank you!\n\n\
-         --- crash report start ---\n\
-         name: {}\n\
-         version: {}\n\
-         compiler: {}\n\
-         package manager: {}\n\
-         host: {}\n",
-        env!("CARGO_PKG_AUTHORS"),
-        env!("CARGO_PKG_NAME"),
-        env!("CARGO_PKG_VERSION"),
-        build::RUST_HEADER,
-        build::CARGO_HEADER,
-        build::RUST_HOST,
-    ));
-
-    buffer.push_str("packages:\n");
-    for (name, version) in build::APP_PACKAGES.iter() {
-        buffer.push_str(&format!("  {} {}\n", name, version));
-    }
-    buffer.push_str("\n");
-
-    match panic_info.location() {
-        Some(location) => {
-            let info = format!("panic occurred in file '{}' at line {}\n", location.file(), location.line());
-            buffer.push_str(&info);
-        }
-        None => buffer.push_str("panic occurred but can't get location information...\n"),
-    }
-    
-    buffer.push_str("stack backtrace:\n");
-    
-    let mut index = 0;
-    backtrace::trace(|frame| {
-        let ip = frame.ip();
-        let symbol_address = frame.symbol_address();
-        backtrace::resolve(ip, |symbol| {
-            if let Some(name) = symbol.name() {
-                let symbol_info = format!("\t{}: {} @ {:?}\n", index, name, symbol_address);
-                buffer.push_str(&symbol_info);
-                index += 1;
-            }
-            match (symbol.filename(), symbol.lineno()) {
-                (Some(filename), Some(line)) => {
-                    let file_info = format!("\t\t\tat {}:{}\n", filename.display(), line);
-                    buffer.push_str(&file_info);
-                }
-                _ => {}
-            }
-        });
-        true
-    });
-
-    buffer.push_str("--- crash report end ---");
-    
-    File::create("crash.log")
-        .and_then(|mut file| write!(file, "{}", buffer))
-        .unwrap_or_else(|_| println!("{}", buffer));
-}
+mod handler;
+mod consts;
 
 fn main() {
     // handle panics
-    panic::set_hook(Box::new(panic_handler));
-
-    // default config
-    const DEFAULT_CONFIG: &'static str = r#"
-    [config]
-    show_highscore_at_start = false
-    magnetization = true
-    blend = true
-    alpha = 150
-    fps = 30
-    [score]
-    users =
-    scores =
-    times ="#;
-    // resource & config
-    const FONT_FILE: &'static str = "./resources/FiraMono-Regular.ttf";
-    const CONFIG_FILE: &'static str = "./resources/config.ini";
-    const GAMESCORE_COUNT: usize = 5;
-    // game title
-    const GT: &'static str = "1010";
-    const MILLISECOND: u32 = 1000;
-    // game score multiplier
-    const LINE_MULTIPLIER: u32 = 10;
-    const BASKET_COUNT: u8 = 3;
-    const BASKET_SIZE: u8 = 5;
-    const FIELD_SIZE: u8 = 10;
-    const FIELD_SHIFT: i16 = 10;
-    // field tile size & separator
-    const TILE_SIZE_1: u8 = 32;
-    const TILE_SEP_1: u8 = 3;
-    // basket tile size & separator
-    const TILE_SIZE_2: u8 = TILE_SIZE_1 / 2;
-    const TILE_SEP_2: u8 = 2;
-    // game block round rect
-    const ROUND_RADIUS: i16 = 4;
-    // gameover round rect radius
-    const BIG_ROUND_RADIUS: i16 = 8;
-    const FIELD_WIDTH: u32 = (TILE_SIZE_1 as u32 + TILE_SEP_1 as u32) * FIELD_SIZE as u32 + 2 * FIELD_SHIFT as u32;
-    const BASKET_LEN: u32 = (TILE_SIZE_2 as u32 + TILE_SEP_2 as u32) * BASKET_SIZE as u32 + FIELD_SHIFT as u32;
-    // game window size
-    const W_WIDTH: u32 = FIELD_WIDTH + BASKET_LEN;
-    const W_HEIGHT: u32 = FIELD_WIDTH;
-    // font consts
-    const FONT_MIN_SIZE: u16 = 12;
-    const FONT_DEF_SIZE: u16 = 18;
-    const FONT_BIG_SIZE: u16 = 48;
-    const FONT_HEIGHT: i16 = FONT_DEF_SIZE as i16 + 2;
+    panic::set_hook(Box::new(handler::panic_handler));
 
     // load game config
     let config = match Ini::from_file(CONFIG_FILE) {
@@ -186,8 +76,8 @@ fn main() {
     let score_pos = coord!(FIELD_WIDTH as i16, FIELD_SHIFT - 3);
     let highscore_pos = score_pos + coord!(0, FONT_HEIGHT - 1);
     let timer_pos = highscore_pos + coord!(0, FONT_HEIGHT - 1);
-    let mut mouse_pos = coord!(0, 0);
-    let mut figure_pos = coord!(0, 0);
+    let mut mouse_pos = coord!();
+    let mut figure_pos = coord!();
 
     // SDL2
     let sdl_context = sdl2::init().expect("Can't init sdl2 context");
@@ -208,9 +98,8 @@ fn main() {
     // game over params
     let mut gameover_flag = config.get("config", "show_highscore_at_start").unwrap_or(false);
     let mut user_name = String::new();
-    let game_over = "GAME OVER";
     // rendering params
-    let (fsx, fsy) = font_big.size_of(game_over).unwrap();
+    let (fsx, fsy) = font_big.size_of(GAME_OVER).unwrap();
     let mut name_input_flag = false;
     let border = 6_i16;
 
@@ -251,7 +140,7 @@ fn main() {
 
         if gameover_flag && !name_input_flag {
             let mut scores = Vec::new();
-            let mut ss = coord!(0, 0);
+            let mut ss = coord!();
             let name_size = 14;
             for (index, score::Score { name, score, time }) in score_table.iter().take(GAMESCORE_COUNT).enumerate() {
                 let name =
@@ -269,7 +158,7 @@ fn main() {
             let p4 = p2 - border;
             msg!(render::fill_rounded_rect(&mut canvas, p1, p2, BIG_ROUND_RADIUS, border_color); canvas.window(), GT);
             msg!(render::fill_rounded_rect(&mut canvas, p3, p4, BIG_ROUND_RADIUS, bg_color); canvas.window(), GT);
-            msg!(render::font(&mut canvas, &font_big, fp1, font_color, game_over); canvas.window(), GT);
+            msg!(render::font(&mut canvas, &font_big, fp1, font_color, GAME_OVER); canvas.window(), GT);
             for (index, text) in scores.iter().enumerate() {
                 let fp2 = fp1 + coord!(0, fsy as i16 + index as i16 * (ss.y / scores.len() as i16)) - coord!(0, border);
                 msg!(render::font(&mut canvas, &font_min, fp2, font_color, text); canvas.window(), GT);
@@ -285,7 +174,7 @@ fn main() {
             let input_name = format!("your name: {}", user_name);
             msg!(render::fill_rounded_rect(&mut canvas, p1, p2, BIG_ROUND_RADIUS, border_color); canvas.window(), GT);
             msg!(render::fill_rounded_rect(&mut canvas, p3, p4, BIG_ROUND_RADIUS, bg_color); canvas.window(), GT);
-            msg!(render::font(&mut canvas, &font_big, fp1, font_color, game_over); canvas.window(), GT);
+            msg!(render::font(&mut canvas, &font_big, fp1, font_color, GAME_OVER); canvas.window(), GT);
             msg!(render::font(&mut canvas, &font, fp2, font_color, &input_name); canvas.window(), GT);
         } else {
             // or count game timer
@@ -294,9 +183,9 @@ fn main() {
 
         // render selected figure (if they catched)
         if let Some(figure) = &current_figure {
-            let size_1 = coord!(TILE_SIZE_1 as i16, TILE_SIZE_1 as i16);
-            let size_2 = coord!(TILE_SIZE_2 as i16, TILE_SIZE_2 as i16);
-            let sep = coord!(TILE_SEP_1 as i16, TILE_SEP_1 as i16);
+            let size_1 = coord!(TILE_SIZE_1 as i16);
+            let size_2 = coord!(TILE_SIZE_2 as i16);
+            let sep = coord!(TILE_SEP_1 as i16);
             figure_pos = if field.is_point_in(&mouse_pos) && magnetization {
                 field.get_point_in(&mouse_pos, &figure)
             } else {
@@ -331,8 +220,7 @@ fn main() {
                     }
                 }
                 Event::MouseMotion { x, y, .. } => {
-                    mouse_pos.x = x as i16;
-                    mouse_pos.y = y as i16;
+                    mouse_pos = coord!(x as i16, y as i16);
                 }
                 Event::MouseButtonDown { mouse_btn: MouseButton::Left, x, y, .. } => {
                     if gameover_flag && !name_input_flag {
