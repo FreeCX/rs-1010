@@ -65,9 +65,9 @@ impl Lines {
 impl Field {
     pub fn init_square(pole_size: u8, tile_size: u8, tile_sep: u8, pos: Coord) -> Field {
         Field {
-            field_size: coord!(pole_size as i16, pole_size as i16),
-            tile_size: coord!(tile_size as i16, tile_size as i16),
-            tile_sep: coord!(tile_sep as i16, tile_sep as i16),
+            field_size: coord!(pole_size as i16),
+            tile_size: coord!(tile_size as i16),
+            tile_sep: coord!(tile_sep as i16),
             pos,
             field: HashSet::new(),
             colors: HashMap::new(),
@@ -78,13 +78,12 @@ impl Field {
     }
 
     pub fn get_cell_index(&self, pos: &Coord) -> Coord {
-        (*pos - self.pos).floor_frac(self.tile_size + self.tile_sep).normalize(Coord::zero(), self.field_size)
+        (*pos - self.pos).floor_frac(self.tile_size + self.tile_sep).normalize(coord!(), self.field_size)
     }
 
     pub fn get_point_in(&self, pos: &Coord, figure: &Figure) -> Coord {
-        let mut norm = self.get_cell_index(pos).normalize(Coord::zero(), self.field_size - figure.max() - 1_i16);
-        norm = norm * (self.tile_size + self.tile_sep) + self.pos;
-        norm
+        let norm = self.get_cell_index(pos).normalize(coord!(), self.field_size - figure.max() - 1_i16);
+        norm * (self.tile_size + self.tile_sep) + self.pos
     }
 
     pub fn is_point_in(&self, pos: &Coord) -> bool {
@@ -318,9 +317,9 @@ impl Figure {
 impl Basket {
     pub fn init_square(field_size: u8, tile_size: u8, tile_sep: u8, pos: Coord) -> Basket {
         Basket {
-            field_size: coord!(field_size as i16, field_size as i16),
-            tile_size: coord!(tile_size as i16, tile_size as i16),
-            tile_sep: coord!(tile_sep as i16, tile_sep as i16),
+            field_size: coord!(field_size as i16),
+            tile_size: coord!(tile_size as i16),
+            tile_sep: coord!(tile_sep as i16),
             figure: None,
             pos,
         }
