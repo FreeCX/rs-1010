@@ -296,13 +296,7 @@ impl Figure {
     }
 
     pub fn render(
-        &self,
-        canvas: &mut Canvas<Window>,
-        pos: Coord,
-        size: Coord,
-        sep: Coord,
-        alpha: u8,
-        radius: i16,
+        &self, canvas: &mut Canvas<Window>, pos: Coord, size: Coord, sep: Coord, alpha: u8, radius: i16,
     ) -> Result<(), String> {
         let color = Color::RGBA(self.color.r, self.color.g, self.color.b, alpha);
         for c in &self.blocks {

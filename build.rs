@@ -2,15 +2,15 @@
 extern crate winres;
 use std::collections::HashMap;
 use std::process::Command;
-use std::{fs::File, io::Write, fs::read_to_string};
+use std::{fs::read_to_string, fs::File, io::Write};
 
 fn execute(cmd: &str) -> String {
     match Command::new(cmd).arg("-vV").output() {
         Ok(value) => match String::from_utf8(value.stdout) {
             Ok(value) => value,
-            Err(_) => "unknown".to_string()
+            Err(_) => "unknown".to_string(),
         },
-        Err(_) => "unknown".to_string()
+        Err(_) => "unknown".to_string(),
     }
 }
 
@@ -62,10 +62,8 @@ fn main() {
 
     // add packages in Cargo.lock
     source_code.push_str(&app_packages());
-    
-    File::create("src/build.rs")
-        .and_then(|mut file| write!(file, "{}", source_code))
-        .unwrap();
+
+    File::create("src/build.rs").and_then(|mut file| write!(file, "{}", source_code)).unwrap();
 
     // set icon for windows binary
     #[cfg(windows)]

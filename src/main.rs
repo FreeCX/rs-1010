@@ -17,12 +17,12 @@ use crate::consts::*;
 #[macro_use]
 mod extra;
 mod build;
+mod consts;
 mod game;
+mod handler;
 mod random;
 mod render;
 mod score;
-mod handler;
-mod consts;
 
 fn main() {
     // handle panics
@@ -210,7 +210,7 @@ fn main() {
                             Scancode::Backspace => {
                                 user_name.pop();
                             }
-                            _ => ()
+                            _ => (),
                         }
                         let s_value = value.name();
                         // sdl2 scancode filter hack

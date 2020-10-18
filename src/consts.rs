@@ -5,7 +5,7 @@ show_highscore_at_start = false
 magnetization = true
 blend = true
 alpha = 150
-fps = 30
+fps = 60
 [score]
 users =
 scores =

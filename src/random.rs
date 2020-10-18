@@ -8,12 +8,7 @@ pub struct Random {
 
 impl Random {
     pub fn new(seed: u32) -> Random {
-        Random {
-            x: seed,
-            y: 362_436_069,
-            z: 521_288_629,
-            w: 88_675_123,
-        }
+        Random { x: seed, y: 362_436_069, z: 521_288_629, w: 88_675_123 }
     }
 
     pub fn rand(&mut self) -> u32 {

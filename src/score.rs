@@ -4,12 +4,12 @@ use tini::Ini;
 pub struct Score {
     pub name: String,
     pub score: u32,
-    pub time: String
+    pub time: String,
 }
 
 #[derive(Debug)]
 pub struct ScoreTable {
-    users: Vec<Score>
+    users: Vec<Score>,
 }
 
 impl Score {
@@ -50,10 +50,11 @@ impl ScoreTable {
             scores.push(format!("{}", score));
             times.push(time);
         }
-        config.section("score")
-              .item("users", &users.as_slice().join(","))
-              .item("scores", &scores.as_slice().join(","))
-              .item("times", &times.as_slice().join(","))
+        config
+            .section("score")
+            .item("users", &users.as_slice().join(","))
+            .item("scores", &scores.as_slice().join(","))
+            .item("times", &times.as_slice().join(","))
     }
 
     pub fn push(&mut self, name: String, score: u32, time: String) {
