@@ -1,5 +1,5 @@
-use std::{fs::File, io::Write};
 use std::panic;
+use std::{fs::File, io::Write};
 
 use crate::build;
 
@@ -10,7 +10,7 @@ pub fn panic_handler(panic_info: &panic::PanicInfo) {
     buffer.push_str(&format!(
         "The application had a problem and crashed.\n\
          To help us diagnose the problem you can send us a crash report.\n\n\
-         Authors: {}\n\n\
+         Author(s): {}\n\n\
          We take privacy seriously, and do not perform any automated error collection.\n\
          In order to improve the software, we rely on people to submit reports.\n\n\
          Thank you!\n\n\
@@ -41,9 +41,9 @@ pub fn panic_handler(panic_info: &panic::PanicInfo) {
         }
         None => buffer.push_str("panic occurred but can't get location information...\n"),
     }
-    
+
     buffer.push_str("stack backtrace:\n");
-    
+
     let mut index = 0;
     backtrace::trace(|frame| {
         let ip = frame.ip();
@@ -66,7 +66,7 @@ pub fn panic_handler(panic_info: &panic::PanicInfo) {
     });
 
     buffer.push_str("--- crash report end ---");
-    
+
     File::create("crash.log")
         .and_then(|mut file| write!(file, "{}", buffer))
         .unwrap_or_else(|_| println!("{}", buffer));

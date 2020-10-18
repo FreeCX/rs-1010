@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul, Sub, Shr};
+use std::ops::{Add, Mul, Shr, Sub};
 use std::time::{Duration, SystemTimeError};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -25,8 +25,12 @@ macro_rules! coord {
     ($x:expr, $y:expr) => {
         crate::extra::Coord { x: $x, y: $y }
     };
-    ($xy:expr) => { coord!($xy, $xy) };
-    () => { coord!(0, 0) };
+    ($xy:expr) => {
+        coord!($xy, $xy)
+    };
+    () => {
+        coord!(0, 0)
+    };
 }
 
 #[macro_export]
@@ -156,7 +160,7 @@ where
 
 impl<T> Shr<T> for Coord
 where
-    T: Into<i16>
+    T: Into<i16>,
 {
     type Output = Self;
 
