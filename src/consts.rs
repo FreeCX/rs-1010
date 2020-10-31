@@ -38,6 +38,7 @@ pub const INIT_SDL_ERROR: &'static str = "Cannot init sdl2 context";
 pub const INIT_SDL_SUBSYSTEM_ERROR: &'static str = "Cannot create video subsystem";
 pub const INIT_WINDOW_ERROR: &'static str = "Cannot create window";
 pub const GET_CANVAS_ERROR: &'static str = "Cannot get canvas";
+pub const GET_COLOR_ERROR: &'static str = "Cannot get color";
 
 // resource & config
 pub const FONT_FILE: &'static str = "./resources/FiraMono-Regular.ttf";

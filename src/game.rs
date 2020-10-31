@@ -7,6 +7,8 @@ use sdl2::video::Window;
 use std::collections::{HashMap, HashSet};
 use std::time::SystemTime;
 
+use crate::consts::GET_COLOR_ERROR;
+
 #[derive(Clone, Copy)]
 pub struct Lines {
     pub x: u32,
@@ -252,7 +254,7 @@ impl Field {
             for x in 0..self.field_size.x {
                 let pos = coord!(x, y);
                 let color = if self.field.contains(&pos) {
-                    *self.colors.get(&pos).ok_or("Can't get color")?
+                    *self.colors.get(&pos).ok_or(GET_COLOR_ERROR)?
                 } else {
                     empty_field_color
                 };
