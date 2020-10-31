@@ -3,13 +3,14 @@ extern crate backtrace;
 extern crate sdl2;
 extern crate tini;
 
+use std::convert::TryFrom;
 use std::panic;
 use std::time::SystemTime;
 
 use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::mouse::MouseButton;
-use sdl2::pixels::Color;
+use sdl2::pixels::{Color, PixelFormat, PixelFormatEnum};
 use tini::Ini;
 
 use crate::consts::*;
@@ -24,6 +25,20 @@ mod random;
 mod render;
 mod score;
 
+fn v_as_color(pixel_fmt: &PixelFormat, config: &Ini, section: &str, param: &str, default: u32) -> Color {
+    let color = match config.get_vec::<u8>(section, param) {
+        Some(value) => {
+            match value[..] {
+                // suport only RGB24
+                [r, g, b] => ((r as u32) << 16) + ((g as u32) << 8) + b as u32,
+                _ => default,
+            }
+        }
+        None => default,
+    };
+    Color::from_u32(&pixel_fmt, color)
+}
+
 fn main() {
     // handle panics
     panic::set_hook(Box::new(handler::panic_handler));
@@ -33,41 +48,9 @@ fn main() {
         Ok(value) => value,
         Err(_) => Ini::from_buffer(DEFAULT_CONFIG),
     };
-    let magnetization = config.get("config", "magnetization").unwrap_or(true);
-    let alpha_value = config.get("config", "alpha").unwrap_or(150);
+    let magnetization = config.get("game", "magnetization").unwrap_or(DEFAULT_MAGNET_PARAM);
+    let alpha_value = config.get("game", "alpha").unwrap_or(DEFAULT_ALPHA_PARAM);
     let mut score_table = score::ScoreTable::from_config(&config);
-
-    // available game figures
-    let figures = vec![
-        figure!(Color::RGB(230, 100, 100); (0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1), (0, 2), (1, 2), (2, 2)),
-        figure!(Color::RGB(230, 100, 100); (0, 0), (1, 0), (0, 1), (1, 1)),
-        figure!(Color::RGB(230, 100, 100); (0, 0)),
-        figure!(Color::RGB(230, 210, 100); (0, 0), (0, 1), (0, 2), (0, 3), (0, 4)),
-        figure!(Color::RGB(230, 210, 100); (0, 0), (1, 0), (2, 0), (3, 0), (4, 0)),
-        figure!(Color::RGB(100, 230, 100); (0, 0), (0, 1), (0, 2), (0, 3)),
-        figure!(Color::RGB(100, 230, 100); (0, 0), (1, 0), (2, 0), (3, 0)),
-        figure!(Color::RGB(230, 100, 200); (0, 0), (0, 1), (0, 2)),
-        figure!(Color::RGB(230, 100, 200); (0, 0), (1, 0), (2, 0)),
-        figure!(Color::RGB(100, 230, 200); (0, 0), (0, 1)),
-        figure!(Color::RGB(100, 230, 200); (0, 0), (1, 0)),
-        figure!(Color::RGB(100, 200, 230); (0, 0), (1, 0), (2, 0), (2, 1), (2, 2)),
-        figure!(Color::RGB(100, 200, 230); (2, 0), (2, 1), (0, 2), (1, 2), (2, 2)),
-        figure!(Color::RGB(100, 200, 230); (0, 0), (0, 1), (0, 2), (1, 2), (2, 2)),
-        figure!(Color::RGB(100, 200, 230); (0, 0), (1, 0), (2, 0), (0, 1), (0, 2)),
-        figure!(Color::RGB(100, 100, 230); (0, 0), (1, 0), (2, 0), (2, 1)),
-        figure!(Color::RGB(100, 100, 230); (1, 0), (1, 1), (0, 2), (1, 2)),
-        figure!(Color::RGB(100, 100, 230); (0, 0), (0, 1), (1, 1), (2, 1)),
-        figure!(Color::RGB(100, 100, 230); (0, 0), (1, 0), (0, 1), (0, 2)),
-        figure!(Color::RGB(210, 100, 230); (0, 0), (1, 0), (1, 1)),
-        figure!(Color::RGB(210, 100, 230); (1, 0), (0, 1), (1, 1)),
-        figure!(Color::RGB(210, 100, 230); (0, 0), (0, 1), (1, 1)),
-        figure!(Color::RGB(210, 100, 230); (0, 0), (1, 0), (0, 1)),
-    ];
-    // default colors
-    let bg_color = Color::RGB(100, 100, 100);
-    let field_bg_color = Color::RGB(170, 170, 170);
-    let font_color = Color::RGB(200, 200, 200);
-    let border_color = Color::RGB(210, 210, 210);
 
     // objects positions
     let basket_pos = coord!(FIELD_WIDTH as i16, 69);
@@ -80,31 +63,75 @@ fn main() {
     let mut figure_pos = coord!();
 
     // SDL2
-    let sdl_context = sdl2::init().expect("Can't init sdl2 context");
-    let video_subsystem = sdl_context.video().expect("Can't create video subsystem");
-    let window =
-        video_subsystem.window(GT, W_WIDTH, W_HEIGHT).position_centered().build().expect("Can't create window");
-    let mut canvas = window.into_canvas().build().expect("Can't get canvas");
+    let sdl_context = sdl2::init().expect(INIT_SDL_ERROR);
+    let video_subsystem = sdl_context.video().expect(INIT_SDL_SUBSYSTEM_ERROR);
+    let window = video_subsystem.window(GT, W_WIDTH, W_HEIGHT).position_centered().build().expect(INIT_WINDOW_ERROR);
+    let mut canvas = window.into_canvas().build().expect(GET_CANVAS_ERROR);
     let mut timer = msg!(sdl_context.timer(); canvas.window(), GT);
     let ttf_context = msg!(sdl2::ttf::init().map_err(|e| e.to_string()); canvas.window(), GT);
+
     // TODO: rewrite to Font struct
     let font = msg!(ttf_context.load_font(FONT_FILE, FONT_DEF_SIZE); canvas.window(), GT);
     let font_big = msg!(ttf_context.load_font(FONT_FILE, FONT_BIG_SIZE); canvas.window(), GT);
     let font_min = msg!(ttf_context.load_font(FONT_FILE, FONT_MIN_SIZE); canvas.window(), GT);
 
+    // game pixel format
+    let pixel_fmt: PixelFormat = msg!(PixelFormat::try_from(PixelFormatEnum::RGB24); canvas.window(), GT);
+
+    // default colors
+    let bg_color = v_as_color(&pixel_fmt, &config, "color", "game_background", GAME_BACKGROUND_COLOR);
+    let field_bg_color = v_as_color(&pixel_fmt, &config, "color", "field_background", FIELD_BACKGROUND_COLOR);
+    let font_color = v_as_color(&pixel_fmt, &config, "color", "font", FONT_COLOR);
+    let border_color = v_as_color(&pixel_fmt, &config, "color", "border", BORDER_COLOR);
+
+    let fig_color_01 = v_as_color(&pixel_fmt, &config, "color", "fig1", FIG_COLOR_01);
+    let fig_color_02 = v_as_color(&pixel_fmt, &config, "color", "fig2", FIG_COLOR_02);
+    let fig_color_03 = v_as_color(&pixel_fmt, &config, "color", "fig3", FIG_COLOR_03);
+    let fig_color_04 = v_as_color(&pixel_fmt, &config, "color", "fig4", FIG_COLOR_04);
+    let fig_color_05 = v_as_color(&pixel_fmt, &config, "color", "fig5", FIG_COLOR_05);
+    let fig_color_06 = v_as_color(&pixel_fmt, &config, "color", "fig6", FIG_COLOR_06);
+    let fig_color_07 = v_as_color(&pixel_fmt, &config, "color", "fig7", FIG_COLOR_07);
+    let fig_color_08 = v_as_color(&pixel_fmt, &config, "color", "fig8", FIG_COLOR_08);
+
+    // available game figures
+    let figures = vec![
+        figure!(fig_color_01; (0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1), (0, 2), (1, 2), (2, 2)),
+        figure!(fig_color_01; (0, 0), (1, 0), (0, 1), (1, 1)),
+        figure!(fig_color_01; (0, 0)),
+        figure!(fig_color_02; (0, 0), (0, 1), (0, 2), (0, 3), (0, 4)),
+        figure!(fig_color_02; (0, 0), (1, 0), (2, 0), (3, 0), (4, 0)),
+        figure!(fig_color_03; (0, 0), (0, 1), (0, 2), (0, 3)),
+        figure!(fig_color_03; (0, 0), (1, 0), (2, 0), (3, 0)),
+        figure!(fig_color_04; (0, 0), (0, 1), (0, 2)),
+        figure!(fig_color_04; (0, 0), (1, 0), (2, 0)),
+        figure!(fig_color_05; (0, 0), (0, 1)),
+        figure!(fig_color_05; (0, 0), (1, 0)),
+        figure!(fig_color_06; (0, 0), (1, 0), (2, 0), (2, 1), (2, 2)),
+        figure!(fig_color_06; (2, 0), (2, 1), (0, 2), (1, 2), (2, 2)),
+        figure!(fig_color_06; (0, 0), (0, 1), (0, 2), (1, 2), (2, 2)),
+        figure!(fig_color_06; (0, 0), (1, 0), (2, 0), (0, 1), (0, 2)),
+        figure!(fig_color_07; (0, 0), (1, 0), (2, 0), (2, 1)),
+        figure!(fig_color_07; (1, 0), (1, 1), (0, 2), (1, 2)),
+        figure!(fig_color_07; (0, 0), (0, 1), (1, 1), (2, 1)),
+        figure!(fig_color_07; (0, 0), (1, 0), (0, 1), (0, 2)),
+        figure!(fig_color_08; (0, 0), (1, 0), (1, 1)),
+        figure!(fig_color_08; (1, 0), (0, 1), (1, 1)),
+        figure!(fig_color_08; (0, 0), (0, 1), (1, 1)),
+        figure!(fig_color_08; (0, 0), (1, 0), (0, 1)),
+    ];
+
     // game scores
     let mut highscore = score_table.get_highscore();
     let mut score: u32 = 0;
     // game over params
-    let mut gameover_flag = config.get("config", "show_highscore_at_start").unwrap_or(false);
+    let mut gameover_flag = config.get("game", "show_highscore_at_start").unwrap_or(DEFAULT_HIGHSCORE_AT_START);
     let mut user_name = String::new();
     // rendering params
     let (fsx, fsy) = font_big.size_of(GAME_OVER).unwrap();
     let mut name_input_flag = false;
-    let border = 6_i16;
 
     // turn on alpha channel
-    if config.get("config", "blend").unwrap_or(true) {
+    if config.get("game", "blend").unwrap_or(DEFAULT_BLEND) {
         canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
     }
 
@@ -118,7 +145,7 @@ fn main() {
     basket.fill(&figures);
 
     // fps block
-    let fps = config.get("config", "fps").unwrap_or(30);
+    let fps = config.get("game", "fps").unwrap_or(DEFAULT_FPS_PARAM);
     let mut last_time = timer.ticks();
 
     // game timer
@@ -141,37 +168,39 @@ fn main() {
         if gameover_flag && !name_input_flag {
             let mut scores = Vec::new();
             let mut ss = coord!();
-            let name_size = 14;
             for (index, score::Score { name, score, time }) in score_table.iter().take(GAMESCORE_COUNT).enumerate() {
-                let name =
-                    if name.len() > name_size { format!("{}...", &name[..name_size - 3]) } else { format!("{}", name) };
-                let score = format!("{}. {: <4$} {:08} ({})", index + 1, name, score, time, name_size);
+                let name = if name.len() > MAX_NAME_SIZE {
+                    format!("{}...", &name[..MAX_NAME_SIZE - 3])
+                } else {
+                    format!("{}", name)
+                };
+                let score = format!("{}. {: <4$} {:08} ({})", index + 1, name, score, time, MAX_NAME_SIZE);
                 let (ssx, ssy) = font_min.size_of(&score).unwrap();
                 ss.y += ssy as i16;
                 ss.x = ss.x.max(ssx as i16);
                 scores.push(score);
             }
             let fp1 = coord!((W_WIDTH as i16 - fsx as i16) >> 1, (W_HEIGHT as i16 - fsy as i16 - ss.y) >> 1);
-            let p1 = fp1 - 2 * border;
-            let p2 = fp1 + coord!(fsx as i16, ss.y + fsy as i16 - border) + 2 * border;
-            let p3 = p1 + border;
-            let p4 = p2 - border;
+            let p1 = fp1 - 2 * BORDER;
+            let p2 = fp1 + coord!(fsx as i16, ss.y + fsy as i16 - BORDER) + 2 * BORDER;
+            let p3 = p1 + BORDER;
+            let p4 = p2 - BORDER;
             msg!(render::fill_rounded_rect(&mut canvas, p1, p2, BIG_ROUND_RADIUS, border_color); canvas.window(), GT);
             msg!(render::fill_rounded_rect(&mut canvas, p3, p4, BIG_ROUND_RADIUS, bg_color); canvas.window(), GT);
             msg!(render::font(&mut canvas, &font_big, fp1, font_color, GAME_OVER); canvas.window(), GT);
             for (index, text) in scores.iter().enumerate() {
-                let fp2 = fp1 + coord!(0, fsy as i16 + index as i16 * (ss.y / scores.len() as i16)) - coord!(0, border);
+                let fp2 = fp1 + coord!(0, fsy as i16 + index as i16 * (ss.y / scores.len() as i16)) - coord!(0, BORDER);
                 msg!(render::font(&mut canvas, &font_min, fp2, font_color, text); canvas.window(), GT);
             }
         } else if gameover_flag && name_input_flag {
             let ssy = (2 * FONT_MIN_SIZE) as i16;
             let fp1 = coord!((W_WIDTH as i16 - fsx as i16) >> 1, (W_HEIGHT as i16 - fsy as i16 - ssy) >> 1);
-            let p1 = fp1 - 2 * border;
-            let p2 = fp1 + coord!(fsx as i16, ssy + fsy as i16 - border) + 2 * border;
-            let p3 = p1 + border;
-            let p4 = p2 - border;
-            let fp2 = fp1 + coord!(0, fsy as i16 - border);
-            let input_name = format!("your name: {}", user_name);
+            let p1 = fp1 - 2 * BORDER;
+            let p2 = fp1 + coord!(fsx as i16, ssy + fsy as i16 - BORDER) + 2 * BORDER;
+            let p3 = p1 + BORDER;
+            let p4 = p2 - BORDER;
+            let fp2 = fp1 + coord!(0, fsy as i16 - BORDER);
+            let input_name = format!("{}{}", GAME_OVER_TEXT, user_name);
             msg!(render::fill_rounded_rect(&mut canvas, p1, p2, BIG_ROUND_RADIUS, border_color); canvas.window(), GT);
             msg!(render::fill_rounded_rect(&mut canvas, p3, p4, BIG_ROUND_RADIUS, bg_color); canvas.window(), GT);
             msg!(render::font(&mut canvas, &font_big, fp1, font_color, GAME_OVER); canvas.window(), GT);
@@ -242,7 +271,7 @@ fn main() {
                             if !field.set_figure(&sel_pos, &figure) {
                                 basket.ret(figure.clone());
                             } else {
-                                score += figure.blocks();
+                                score += figure.blocks() * BLOCK_COST_MULTIPLIER;
                             }
                             None
                         }
@@ -284,7 +313,7 @@ fn main() {
     }
 
     // add game score when game closed
-    score_table.push("unknown".to_string(), score, extra::as_time_str(&game_stop));
+    score_table.push(UNKNOWN.to_string(), score, extra::as_time_str(&game_stop));
     // update highscore results
     msg!(score_table.to_config(GAMESCORE_COUNT, config).to_file(CONFIG_FILE); canvas.window(), GT);
 }
