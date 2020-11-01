@@ -228,23 +228,20 @@ fn main() {
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'running,
-                Event::KeyDown { scancode: Some(value), .. } => {
+                Event::TextInput { text, .. } => {
                     if name_input_flag {
-                        match value {
+                        user_name.push_str(&text);
+                    }
+                }
+                Event::KeyDown { scancode: Some(key), .. } => {
+                    if name_input_flag {
+                        match key {
                             Scancode::Return | Scancode::KpEnter => {
                                 score_table.push(user_name.clone(), score, extra::as_time_str(&game_stop));
                                 user_name.clear();
                                 name_input_flag = false;
                             }
-                            Scancode::Backspace => {
-                                user_name.pop();
-                            }
                             _ => (),
-                        }
-                        let s_value = value.name();
-                        // sdl2 scancode filter hack
-                        if s_value.len() == 1 {
-                            user_name.push_str(value.name());
                         }
                     }
                 }
