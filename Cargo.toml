@@ -13,6 +13,9 @@ version = ">=0.34"
 tini = "0.4"
 backtrace = ">=0.3"
 
+[build-dependencies]
+chrono = "0.4"
+
 [target.'cfg(windows)'.build-dependencies]
 winres = ">=0.1"
 

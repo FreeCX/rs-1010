@@ -1,23 +1,15 @@
 #[cfg(windows)]
 extern crate winres;
+extern crate chrono;
 use std::collections::HashMap;
 use std::process::Command;
 use std::{fs::read_to_string, fs::File, io::Write};
+use chrono::Utc;
 
-fn p_execute(cmd: &str) -> String {
+fn execute(cmd: &str) -> String {
     match Command::new(cmd).arg("-vV").output() {
         Ok(value) => match String::from_utf8(value.stdout) {
             Ok(value) => value,
-            Err(_) => "unknown".to_string(),
-        },
-        Err(_) => "unknown".to_string(),
-    }
-}
-
-fn a_execute(cmd: &[&str]) -> String {
-    match Command::new(cmd[0]).args(&cmd[1..]).output() {
-        Ok(value) => match String::from_utf8(value.stdout) {
-            Ok(value) => value.trim().to_string(),
             Err(_) => "unknown".to_string(),
         },
         Err(_) => "unknown".to_string(),
@@ -62,7 +54,7 @@ fn main() {
     // generate build info
     let mut source_code = "#![allow(dead_code)]\n".to_string();
     for (prefix, executable) in [("RUST", "rustc"), ("CARGO", "cargo")].iter() {
-        let iterator = parse(p_execute(executable));
+        let iterator = parse(execute(executable));
         for (k, v) in iterator {
             let key = k.to_uppercase().replace("-", "_").replace(" ", "_");
             let fmt_str = format!("pub static {}_{}: &'static str = \"{}\";\n", prefix, key, v);
@@ -71,8 +63,8 @@ fn main() {
     }
 
     // add git project info
-    let git_hash = a_execute(&["git", "log", "-1", "--pretty=format:%h"]);
-    let build_date = a_execute(&["date", "+%Y-%m-%d"]);
+    let git_hash = &include_str!(".git/FETCH_HEAD")[..9];
+    let build_date = Utc::now().format("%Y-%m-%d");
     let git_project_info =
         format!("pub static GIT_PROJECT_INFO: &'static str = \"{} {}\";\n", git_hash, build_date);
     source_code.push_str(&git_project_info);
