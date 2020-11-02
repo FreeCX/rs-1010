@@ -154,7 +154,7 @@ fn main() {
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
-        // render text, field & basket
+        // render cycle: text, field & basket
         canvas.set_draw_color(bg_color);
         canvas.clear();
         msg!(render::font(&mut canvas, &font, score_pos, font_color, &format!("{:08}", score)); canvas.window(), GT);
@@ -166,10 +166,11 @@ fn main() {
         msg!(basket.render(&mut canvas, field_bg_color, ROUND_RADIUS); canvas.window(), GT);
 
         if gameover_flag && !name_input_flag {
+            // highscore table
             let mut scores = Vec::new();
             let mut ss = coord!();
             for (index, score::Score { name, score, time }) in score_table.iter().take(GAMESCORE_COUNT).enumerate() {
-                let name = if name.len() > MAX_NAME_SIZE {
+                let name = if name.chars().count() > MAX_NAME_SIZE {
                     format!("{}...", &name[..MAX_NAME_SIZE - 3])
                 } else {
                     format!("{}", name)
@@ -193,6 +194,7 @@ fn main() {
                 msg!(render::font(&mut canvas, &font_min, fp2, font_color, text); canvas.window(), GT);
             }
         } else if gameover_flag && name_input_flag {
+            // gameover input name
             let ssy = (2 * FONT_MIN_SIZE) as i16;
             let fp1 = coord!((W_WIDTH as i16 - fsx as i16) >> 1, (W_HEIGHT as i16 - fsy as i16 - ssy) >> 1);
             let p1 = fp1 - 2 * BORDER;
@@ -206,7 +208,7 @@ fn main() {
             msg!(render::font(&mut canvas, &font_big, fp1, font_color, GAME_OVER); canvas.window(), GT);
             msg!(render::font(&mut canvas, &font, fp2, font_color, &input_name); canvas.window(), GT);
         } else {
-            // or count game timer
+            // stop game timer
             game_stop = game_start.elapsed();
         }
 
@@ -229,7 +231,7 @@ fn main() {
             match event {
                 Event::Quit { .. } | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'running,
                 Event::TextInput { text, .. } => {
-                    if name_input_flag {
+                    if name_input_flag && user_name.chars().count() < MAX_NAME_SIZE {
                         user_name.push_str(&text);
                     }
                 }
@@ -237,9 +239,17 @@ fn main() {
                     if name_input_flag {
                         match key {
                             Scancode::Return | Scancode::KpEnter => {
-                                score_table.push(user_name.clone(), score, extra::as_time_str(&game_stop));
+                                let fixed_user_name = user_name.replace(",", " ").trim().to_string();
+                                // ignore empty user name
+                                if fixed_user_name.chars().count() == 0 {
+                                    continue;
+                                }
+                                score_table.push(fixed_user_name, score, extra::as_time_str(&game_stop));
                                 user_name.clear();
                                 name_input_flag = false;
+                            }
+                            Scancode::Backspace => {
+                                user_name.pop();
                             }
                             _ => (),
                         }
