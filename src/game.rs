@@ -7,7 +7,9 @@ use sdl2::video::Window;
 use std::collections::{HashMap, HashSet};
 use std::time::SystemTime;
 
-use crate::consts::GET_COLOR_ERROR;
+use crate::consts::{GET_COLOR_ERROR, SQR_SIZE};
+
+type Blocks = HashSet<(i16, i16)>;
 
 #[derive(Clone, Copy)]
 pub struct Lines {
@@ -15,11 +17,10 @@ pub struct Lines {
     pub y: u32,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum State {
     Wait,
-    ClearLineX(i16, i16),
-    ClearLineY(i16, i16),
+    Clear(u8),
 }
 
 pub struct Field {
@@ -29,8 +30,8 @@ pub struct Field {
     pos: Coord,
     field: HashSet<Coord>,
     colors: HashMap<Coord, Color>,
-    cur_state: State,
-    all_state: Vec<State>,
+    state: State,
+    clear: Blocks,
     lines: Lines,
 }
 
@@ -73,8 +74,8 @@ impl Field {
             pos,
             field: HashSet::new(),
             colors: HashMap::new(),
-            cur_state: State::Wait,
-            all_state: Vec::new(),
+            state: State::Wait,
+            clear: Blocks::new(),
             lines: Lines::empty(),
         }
     }
@@ -94,7 +95,7 @@ impl Field {
     }
 
     pub fn set_figure(&mut self, pos: &Coord, figure: &Figure) -> bool {
-        if self.cur_state != State::Wait {
+        if self.state != State::Wait {
             return false;
         }
         let new_figure = figure.shift(self.get_cell_index(pos));
@@ -160,21 +161,18 @@ impl Field {
         }
     }
 
-    fn pop_state(&mut self) -> State {
-        if self.all_state.len() > 0 {
-            self.all_state.pop().unwrap()
-        } else {
-            State::Wait
+    fn remove_blocks(&mut self) {
+        let blocks = self.clear.clone();
+        for (x, y) in blocks {
+            let p = coord!(x, y);
+            self.field.remove(&p);
+            self.colors.remove(&p);
         }
-    }
-
-    fn remove(&mut self, p: Coord) {
-        self.field.remove(&p);
-        self.colors.remove(&p);
+        self.clear.clear();
     }
 
     pub fn can_set(&self, figures: Vec<Figure>) -> bool {
-        if figures.len() == 0 || self.cur_state != State::Wait {
+        if figures.len() == 0 || self.state != State::Wait {
             return true;
         }
         for figure in figures {
@@ -196,47 +194,60 @@ impl Field {
     pub fn clear(&mut self) {
         self.field.clear();
         self.colors.clear();
-        self.cur_state = State::Wait;
-        self.all_state.clear();
+        self.state = State::Wait;
         self.lines = Lines::empty();
+        self.clear = Blocks::new();
+    }
+
+    pub fn update_state(&mut self, x: i16, y: i16, p: u8) {
+        match &self.state {
+            State::Wait => {
+                self.state = State::Clear(p);
+                self.clear.insert((x, y));
+            }
+            State::Clear(_) => {
+                self.clear.insert((x, y));
+            }
+        };
     }
 
     pub fn next_state(&mut self) -> Option<Lines> {
-        let new_state = match self.cur_state {
+        let new_state = match self.state {
             State::Wait => {
+                // calc x lines
                 for x in 0..self.field_size.x {
                     if let Some(true) = self.check_line_v(x as u8) {
-                        self.all_state.push(State::ClearLineX(x, 0));
+                        for y in 0..self.field_size.y {
+                            self.update_state(x, y, SQR_SIZE);
+                        }
+                        self.lines.x += 1;
                     }
                 }
+                // and y
                 for y in 0..self.field_size.y {
                     if let Some(true) = self.check_line_h(y as u8) {
-                        self.all_state.push(State::ClearLineY(0, y));
+                        for x in 0..self.field_size.x {
+                            self.update_state(x, y, SQR_SIZE);
+                        }
+                        self.lines.y += 1;
                     }
                 }
-                self.pop_state()
+                self.state
             }
-            State::ClearLineX(x, y) => {
-                if y == self.field_size.y {
-                    self.lines.y += 1;
-                    self.pop_state()
+            State::Clear(p) => {
+                if p > 0 {
+                    // animation step
+                    State::Clear(p - 1)
                 } else {
-                    self.remove(coord!(x, y));
-                    State::ClearLineX(x, y + 1)
-                }
-            }
-            State::ClearLineY(x, y) => {
-                if x == self.field_size.x {
-                    self.lines.x += 1;
-                    self.pop_state()
-                } else {
-                    self.remove(coord!(x, y));
-                    State::ClearLineY(x + 1, y)
+                    // animation is finished
+                    self.remove_blocks();
+                    State::Wait
                 }
             }
         };
-        self.cur_state = new_state;
-        if self.cur_state == State::Wait {
+
+        self.state = new_state;
+        if self.state == State::Wait {
             if self.lines.not_empty() {
                 let lines = self.lines;
                 self.lines = Lines::empty();
@@ -258,9 +269,27 @@ impl Field {
                 } else {
                     empty_field_color
                 };
+
+                // block shift size
+                let shift = match &self.state {
+                    State::Clear(p) => {
+                        if self.clear.contains(&(x, y)) {
+                            coord!(SQR_SIZE as i16 - *p as i16, SQR_SIZE as i16 - *p as i16)
+                        } else {
+                            coord!(0, 0)
+                        }
+                    }
+                    State::Wait => coord!(0, 0),
+                };
+
                 let p1 = pos * (self.tile_size + self.tile_sep) + self.pos;
                 let p2 = p1 + self.tile_size;
-                fill_rounded_rect(canvas, p1, p2, radius, color)?;
+
+                // background for animated blocks
+                if !shift.is_zero() {
+                    fill_rounded_rect(canvas, p1, p2, radius, empty_field_color)?;
+                }
+                fill_rounded_rect(canvas, p1 + shift, p2 - shift, radius, color)?;
             }
         }
         Ok(())

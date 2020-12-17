@@ -96,6 +96,7 @@ pub const DEFAULT_FPS_PARAM: u32 = 60;
 // other
 pub const MAX_NAME_SIZE: usize = 14;
 pub const BORDER: i16 = 6;
+pub const SQR_SIZE: u8 = 12;
 
 // default game colors
 pub const GAME_BACKGROUND_COLOR: u32 = (100 << 16) + (100 << 8) + 100;
