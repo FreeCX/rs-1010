@@ -1,10 +1,10 @@
+extern crate chrono;
 #[cfg(windows)]
 extern crate winres;
-extern crate chrono;
+use chrono::Utc;
 use std::collections::HashMap;
 use std::process::Command;
 use std::{fs::read_to_string, fs::File, io::Write};
-use chrono::Utc;
 
 fn execute(cmd: &str) -> String {
     match Command::new(cmd).arg("-vV").output() {
@@ -65,8 +65,7 @@ fn main() {
     // add git project info
     let git_hash = &include_str!(".git/FETCH_HEAD")[..9];
     let build_date = Utc::now().format("%Y-%m-%d");
-    let git_project_info =
-        format!("pub static GIT_PROJECT_INFO: &'static str = \"{} {}\";\n", git_hash, build_date);
+    let git_project_info = format!("pub static GIT_PROJECT_INFO: &'static str = \"{} {}\";\n", git_hash, build_date);
     source_code.push_str(&git_project_info);
 
     // add packages in Cargo.lock
