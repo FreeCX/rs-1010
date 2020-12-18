@@ -1,6 +1,6 @@
 # rs-1010
 
-![Gameplay demo](./resources/demo.gif)
+![Gameplay demo](./extra/demo.gif)
 
 ## Required components
 - SDL2
