@@ -2,3 +2,4 @@ resources/demo.gif filter=lfs diff=lfs merge=lfs -text
 resources/icon.ico filter=lfs diff=lfs merge=lfs -text
 resources/FiraMono-Regular.ttf filter=lfs diff=lfs merge=lfs -text
 resources/icon.png filter=lfs diff=lfs merge=lfs -text
+*.blend filter=lfs diff=lfs merge=lfs -text
