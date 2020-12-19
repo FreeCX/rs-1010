@@ -50,6 +50,8 @@ fn main() {
     };
     let magnetization = config.get("game", "magnetization").unwrap_or(DEFAULT_MAGNET_PARAM);
     let alpha_value = config.get("game", "alpha").unwrap_or(DEFAULT_ALPHA_PARAM);
+    let cfg_user_name = config.get("game", "username").unwrap_or(DEFAULT_USER_NAME.to_string());
+    let ask_username = config.get("game", "ask_username").unwrap_or(cfg_user_name == DEFAULT_USER_NAME);
     let mut score_table = score::ScoreTable::from_config(&config);
 
     // objects positions
@@ -81,7 +83,8 @@ fn main() {
     // default colors
     let bg_color = v_as_color(&pixel_fmt, &config, "color", "game_background", GAME_BACKGROUND_COLOR);
     let field_bg_color = v_as_color(&pixel_fmt, &config, "color", "field_background", FIELD_BACKGROUND_COLOR);
-    let font_color = v_as_color(&pixel_fmt, &config, "color", "font", FONT_COLOR);
+    let font_color = v_as_color(&pixel_fmt, &config, "color", "font", FONT_ACOLOR);
+    let light_font_color = v_as_color(&pixel_fmt, &config, "color", "light", FONT_BCOLOR);
     let border_color = v_as_color(&pixel_fmt, &config, "color", "border", BORDER_COLOR);
 
     let fig_color_01 = v_as_color(&pixel_fmt, &config, "color", "fig1", FIG_COLOR_01);
@@ -169,12 +172,16 @@ fn main() {
             // highscore table
             let mut scores = Vec::new();
             let mut ss = coord!();
-            for (index, score::Score { name, score, time }) in score_table.iter().take(GAMESCORE_COUNT).enumerate() {
+            let mut curr_score = None;
+            for (index, score::Score { name, score, time, last }) in score_table.iter().take(GAMESCORE_COUNT).enumerate() {
                 let name = if name.chars().count() > MAX_NAME_SIZE {
                     format!("{}...", &name[..MAX_NAME_SIZE - 3])
                 } else {
                     format!("{}", name)
                 };
+                if *last {
+                    curr_score = Some(index);
+                }
                 let score = format!("{}. {: <4$} {:08} ({})", index + 1, name, score, time, MAX_NAME_SIZE);
                 let (ssx, ssy) = font_min.size_of(&score).unwrap();
                 ss.y += ssy as i16;
@@ -191,7 +198,8 @@ fn main() {
             msg!(render::font(&mut canvas, &font_big, fp1, font_color, GAME_OVER); canvas.window(), GT);
             for (index, text) in scores.iter().enumerate() {
                 let fp2 = fp1 + coord!(0, fsy as i16 + index as i16 * (ss.y / scores.len() as i16)) - coord!(0, BORDER);
-                msg!(render::font(&mut canvas, &font_min, fp2, font_color, text); canvas.window(), GT);
+                let fcolor = if Some(index) == curr_score { light_font_color } else { font_color };
+                msg!(render::font(&mut canvas, &font_min, fp2, fcolor, text); canvas.window(), GT);
             }
         } else if gameover_flag && name_input_flag {
             // gameover input name
@@ -304,6 +312,11 @@ fn main() {
             if !gameover_flag && !name_input_flag {
                 name_input_flag = true;
             }
+            // autoset username to score table
+            if !ask_username && name_input_flag {
+                score_table.push(cfg_user_name.clone(), score, extra::as_time_str(&game_stop));
+                name_input_flag = false;
+            }
             gameover_flag = true;
         }
 
@@ -320,7 +333,7 @@ fn main() {
     }
 
     // add game score when game closed
-    score_table.push(UNKNOWN.to_string(), score, extra::as_time_str(&game_stop));
+    score_table.push(DEFAULT_USER_NAME.to_string(), score, extra::as_time_str(&game_stop));
     // update highscore results
     msg!(score_table.to_config(GAMESCORE_COUNT, config).to_file(CONFIG_FILE); canvas.window(), GT);
 }

@@ -5,6 +5,7 @@ pub struct Score {
     pub name: String,
     pub score: u32,
     pub time: String,
+    pub last: bool,
 }
 
 #[derive(Debug)]
@@ -13,8 +14,8 @@ pub struct ScoreTable {
 }
 
 impl Score {
-    fn new(name: String, score: u32, time: String) -> Score {
-        Score { name, score, time }
+    fn new(name: String, score: u32, time: String, last: bool) -> Score {
+        Score { name, score, time, last }
     }
 }
 
@@ -25,7 +26,7 @@ impl ScoreTable {
         let time: Vec<String> = config.get_vec("score", "times").unwrap_or(Vec::new());
         let mut users = Vec::new();
         for (u, s, t) in user.into_iter().zip(score).zip(time).map(|((x, y), z)| (x, y, z)) {
-            users.push(Score::new(u, s, t));
+            users.push(Score::new(u, s, t, false));
         }
         let mut game_table = ScoreTable { users };
         game_table.sort_by_score();
@@ -45,7 +46,7 @@ impl ScoreTable {
         let mut users = Vec::new();
         let mut scores = Vec::new();
         let mut times = Vec::new();
-        for Score { name, score, time } in self.users.into_iter().take(count) {
+        for Score { name, score, time, .. } in self.users.into_iter().take(count) {
             users.push(name);
             scores.push(format!("{}", score));
             times.push(time);
@@ -58,7 +59,10 @@ impl ScoreTable {
     }
 
     pub fn push(&mut self, name: String, score: u32, time: String) {
-        self.users.push(Score::new(name, score, time));
+        for item in self.users.iter_mut() {
+            item.last = false;
+        } 
+        self.users.push(Score::new(name, score, time, true));
         self.sort_by_score();
     }
 

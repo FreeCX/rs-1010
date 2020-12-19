@@ -11,11 +11,14 @@ magnetization = false
 blend = true
 alpha = 150
 fps = 60
+username = user
+ask_username = true
 
 [color]
 game_background = 100, 100, 100
 field_background = 170, 170, 170
 font = 200, 200, 200
+light = 255, 255, 255
 border = 210, 210, 210
 fig1 = 230, 100, 100
 fig2 = 230, 210, 100
@@ -30,7 +33,6 @@ fig8 = 210, 100, 230
 // game strings
 pub const GAME_OVER_TEXT: &'static str = "your name:";
 pub const GAME_OVER: &'static str = "GAME OVER";
-pub const UNKNOWN: &'static str = "unknown";
 pub const GT: &'static str = "1010";
 
 // errors
@@ -88,6 +90,7 @@ pub const FONT_HEIGHT: i16 = FONT_DEF_SIZE as i16 + 2;
 
 // defaul game params
 pub const DEFAULT_HIGHSCORE_AT_START: bool = false;
+pub const DEFAULT_USER_NAME: &'static str = "unknown";
 pub const DEFAULT_MAGNET_PARAM: bool = true;
 pub const DEFAULT_BLEND: bool = true;
 pub const DEFAULT_ALPHA_PARAM: u8 = 150;
@@ -101,7 +104,8 @@ pub const SQR_SIZE: u8 = 12;
 // default game colors
 pub const GAME_BACKGROUND_COLOR: u32 = (100 << 16) + (100 << 8) + 100;
 pub const FIELD_BACKGROUND_COLOR: u32 = (170 << 16) + (170 << 8) + 170;
-pub const FONT_COLOR: u32 = (200 << 16) + (200 << 8) + 200;
+pub const FONT_ACOLOR: u32 = (200 << 16) + (200 << 8) + 200;
+pub const FONT_BCOLOR: u32 = (255 << 16) + (255 << 8) + 255;
 pub const BORDER_COLOR: u32 = (210 << 16) + (210 << 8) + 210;
 pub const FIG_COLOR_01: u32 = (230 << 16) + (100 << 8) + 100;
 pub const FIG_COLOR_02: u32 = (230 << 16) + (210 << 8) + 100;
