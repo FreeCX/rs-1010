@@ -115,29 +115,29 @@ fn main() {
 
     // available game figures
     let figures = &[
-        figure!(0, palette[0]; (0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1), (0, 2), (1, 2), (2, 2)),
-        figure!(1, palette[0]; (0, 0), (1, 0), (0, 1), (1, 1)),
-        figure!(2, palette[0]; (0, 0)),
-        figure!(3, palette[1]; (0, 0), (0, 1), (0, 2), (0, 3), (0, 4)),
-        figure!(4, palette[1]; (0, 0), (1, 0), (2, 0), (3, 0), (4, 0)),
-        figure!(5, palette[2]; (0, 0), (0, 1), (0, 2), (0, 3)),
-        figure!(6, palette[2]; (0, 0), (1, 0), (2, 0), (3, 0)),
-        figure!(7, palette[3]; (0, 0), (0, 1), (0, 2)),
-        figure!(8, palette[3]; (0, 0), (1, 0), (2, 0)),
-        figure!(9, palette[4]; (0, 0), (0, 1)),
-        figure!(10, palette[4]; (0, 0), (1, 0)),
-        figure!(11, palette[5]; (0, 0), (1, 0), (2, 0), (2, 1), (2, 2)),
-        figure!(12, palette[5]; (2, 0), (2, 1), (0, 2), (1, 2), (2, 2)),
-        figure!(13, palette[5]; (0, 0), (0, 1), (0, 2), (1, 2), (2, 2)),
-        figure!(14, palette[5]; (0, 0), (1, 0), (2, 0), (0, 1), (0, 2)),
-        figure!(15, palette[6]; (0, 0), (1, 0), (2, 0), (2, 1)),
-        figure!(16, palette[6]; (1, 0), (1, 1), (0, 2), (1, 2)),
-        figure!(17, palette[6]; (0, 0), (0, 1), (1, 1), (2, 1)),
-        figure!(18, palette[7]; (0, 0), (1, 0), (0, 1), (0, 2)),
-        figure!(19, palette[7]; (0, 0), (1, 0), (1, 1)),
-        figure!(20, palette[7]; (1, 0), (0, 1), (1, 1)),
-        figure!(21, palette[7]; (0, 0), (0, 1), (1, 1)),
-        figure!(22, palette[7]; (0, 0), (1, 0), (0, 1)),
+        figure!(1, palette[0]; (0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1), (0, 2), (1, 2), (2, 2)),
+        figure!(2, palette[0]; (0, 0), (1, 0), (0, 1), (1, 1)),
+        figure!(3, palette[0]; (0, 0)),
+        figure!(4, palette[1]; (0, 0), (0, 1), (0, 2), (0, 3), (0, 4)),
+        figure!(5, palette[1]; (0, 0), (1, 0), (2, 0), (3, 0), (4, 0)),
+        figure!(6, palette[2]; (0, 0), (0, 1), (0, 2), (0, 3)),
+        figure!(7, palette[2]; (0, 0), (1, 0), (2, 0), (3, 0)),
+        figure!(8, palette[3]; (0, 0), (0, 1), (0, 2)),
+        figure!(9, palette[3]; (0, 0), (1, 0), (2, 0)),
+        figure!(10, palette[4]; (0, 0), (0, 1)),
+        figure!(11, palette[4]; (0, 0), (1, 0)),
+        figure!(12, palette[5]; (0, 0), (1, 0), (2, 0), (2, 1), (2, 2)),
+        figure!(13, palette[5]; (2, 0), (2, 1), (0, 2), (1, 2), (2, 2)),
+        figure!(14, palette[5]; (0, 0), (0, 1), (0, 2), (1, 2), (2, 2)),
+        figure!(15, palette[5]; (0, 0), (1, 0), (2, 0), (0, 1), (0, 2)),
+        figure!(16, palette[6]; (0, 0), (1, 0), (2, 0), (2, 1)),
+        figure!(17, palette[6]; (1, 0), (1, 1), (0, 2), (1, 2)),
+        figure!(18, palette[6]; (0, 0), (0, 1), (1, 1), (2, 1)),
+        figure!(19, palette[7]; (0, 0), (1, 0), (0, 1), (0, 2)),
+        figure!(20, palette[7]; (0, 0), (1, 0), (1, 1)),
+        figure!(21, palette[7]; (1, 0), (0, 1), (1, 1)),
+        figure!(22, palette[7]; (0, 0), (0, 1), (1, 1)),
+        figure!(23, palette[7]; (0, 0), (1, 0), (0, 1)),
     ];
 
     // game scores
@@ -162,7 +162,7 @@ fn main() {
         game::BasketSystem::new(BASKET_COUNT, BASKET_SIZE, TILE_SIZE_2, TILE_SEP_2, basket_pos, basket_shift);
 
     // fill basket by random figures
-    basket.fill(figures);
+    basket.rnd_fill(figures);
 
     // fps block
     let fps = config.get("game", "fps").unwrap_or(DEFAULT_FPS_PARAM);
@@ -295,7 +295,7 @@ fn main() {
                     if gameover_flag && !name_input_flag {
                         // restart game
                         gameover_flag = false;
-                        basket.fill(figures);
+                        basket.rnd_fill(figures);
                         field.clear();
                         score = 0;
                         game_start = SystemTime::now();
@@ -359,9 +359,7 @@ fn main() {
 
     // save game state
     if score > 0 {
-        // generate state
         let state = save::serialize(field, basket, score, game_start);
-        // update config
         config = config.section("game").item("state", state);
     }
 

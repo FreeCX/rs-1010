@@ -416,18 +416,26 @@ impl BasketSystem {
         None
     }
 
+    pub fn set(&mut self, index: usize, figure: Figure) {
+        self.basket[index].push(figure);
+    }
+
+    pub fn pop(&mut self, index: usize) {
+        self.basket[index].pop();
+    }
+
     pub fn ret(&mut self, figure: Figure) {
         if let Some(index) = self.current {
-            self.basket[index].push(figure);
+            self.set(index, figure);
             self.current = None;
         }
     }
 
-    pub fn fill(&mut self, figures: &[Figure]) {
+    pub fn rnd_fill(&mut self, figures: &[Figure]) {
         let size = figures.len();
         for index in 0..self.basket.len() {
             let item = self.rnd.rand() as usize % size;
-            self.basket[index].push(figures[item].clone());
+            self.set(index, figures[item].clone());
         }
     }
 
@@ -437,7 +445,7 @@ impl BasketSystem {
                 return;
             }
         }
-        self.fill(figures);
+        self.rnd_fill(figures);
     }
 
     pub fn figures(&self) -> Vec<Figure> {
