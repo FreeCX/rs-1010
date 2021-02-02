@@ -9,13 +9,13 @@ pub struct Coord {
 
 #[macro_export]
 macro_rules! figure {
-    ($c:expr; $( ($x:expr, $y:expr) ),*) => {
+    ($i:expr, $c:expr; $( ($x:expr, $y:expr) ),*) => {
         {
             let mut slice = Vec::new();
             $(
                 slice.push(coord!($x, $y));
             )*
-            game::Figure::from_slice(&slice, $c)
+            game::Figure::from_slice($i, &slice, $c)
         }
     };
 }

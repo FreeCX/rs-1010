@@ -61,7 +61,7 @@ impl ScoreTable {
     pub fn push(&mut self, name: String, score: u32, time: String) {
         for item in self.users.iter_mut() {
             item.last = false;
-        } 
+        }
         self.users.push(Score::new(name, score, time, true));
         self.sort_by_score();
     }
