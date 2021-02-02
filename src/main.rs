@@ -23,6 +23,7 @@ mod game;
 mod handler;
 mod random;
 mod render;
+mod save;
 mod score;
 
 fn v_as_color(pixel_fmt: &PixelFormat, config: &Ini, section: &str, param: &str, default: u32) -> Color {
@@ -44,9 +45,12 @@ fn main() {
     panic::set_hook(Box::new(handler::panic_handler));
 
     // load game config
-    let config = match Ini::from_file(CONFIG_FILE) {
+    let mut config = match Ini::from_file(CONFIG_FILE) {
         Ok(value) => value,
-        Err(_) => Ini::from_buffer(DEFAULT_CONFIG),
+        Err(e) => {
+            eprintln!("[warning] config: {}", e);
+            Ini::from_string(DEFAULT_CONFIG).expect("cannot load default config")
+        }
     };
     let magnetization = config.get("game", "magnetization").unwrap_or(DEFAULT_MAGNET_PARAM);
     let alpha_value = config.get("game", "alpha").unwrap_or(DEFAULT_ALPHA_PARAM);
@@ -80,47 +84,60 @@ fn main() {
     // game pixel format
     let pixel_fmt: PixelFormat = msg!(PixelFormat::try_from(PixelFormatEnum::RGB24); canvas.window(), GT);
 
-    // default colors
-    let bg_color = v_as_color(&pixel_fmt, &config, "color", "game_background", GAME_BACKGROUND_COLOR);
-    let field_bg_color = v_as_color(&pixel_fmt, &config, "color", "field_background", FIELD_BACKGROUND_COLOR);
-    let font_color = v_as_color(&pixel_fmt, &config, "color", "font", FONT_ACOLOR);
-    let light_font_color = v_as_color(&pixel_fmt, &config, "color", "light", FONT_BCOLOR);
-    let border_color = v_as_color(&pixel_fmt, &config, "color", "border", BORDER_COLOR);
-
-    let fig_color_01 = v_as_color(&pixel_fmt, &config, "color", "fig1", FIG_COLOR_01);
-    let fig_color_02 = v_as_color(&pixel_fmt, &config, "color", "fig2", FIG_COLOR_02);
-    let fig_color_03 = v_as_color(&pixel_fmt, &config, "color", "fig3", FIG_COLOR_03);
-    let fig_color_04 = v_as_color(&pixel_fmt, &config, "color", "fig4", FIG_COLOR_04);
-    let fig_color_05 = v_as_color(&pixel_fmt, &config, "color", "fig5", FIG_COLOR_05);
-    let fig_color_06 = v_as_color(&pixel_fmt, &config, "color", "fig6", FIG_COLOR_06);
-    let fig_color_07 = v_as_color(&pixel_fmt, &config, "color", "fig7", FIG_COLOR_07);
-    let fig_color_08 = v_as_color(&pixel_fmt, &config, "color", "fig8", FIG_COLOR_08);
+    let palette = [
+        // 00
+        v_as_color(&pixel_fmt, &config, "color", "fig1", FIG_COLOR_01),
+        // 01
+        v_as_color(&pixel_fmt, &config, "color", "fig2", FIG_COLOR_02),
+        // 02
+        v_as_color(&pixel_fmt, &config, "color", "fig3", FIG_COLOR_03),
+        // 03
+        v_as_color(&pixel_fmt, &config, "color", "fig4", FIG_COLOR_04),
+        // 04
+        v_as_color(&pixel_fmt, &config, "color", "fig5", FIG_COLOR_05),
+        // 05
+        v_as_color(&pixel_fmt, &config, "color", "fig6", FIG_COLOR_06),
+        // 06
+        v_as_color(&pixel_fmt, &config, "color", "fig7", FIG_COLOR_07),
+        // 07
+        v_as_color(&pixel_fmt, &config, "color", "fig8", FIG_COLOR_08),
+        // 08: bg_color
+        v_as_color(&pixel_fmt, &config, "color", "game_background", GAME_BACKGROUND_COLOR),
+        // 09: field_bg_color
+        v_as_color(&pixel_fmt, &config, "color", "field_background", FIELD_BACKGROUND_COLOR),
+        // 10: font_color
+        v_as_color(&pixel_fmt, &config, "color", "font", FONT_ACOLOR),
+        // 11: light_font_color
+        v_as_color(&pixel_fmt, &config, "color", "light", FONT_BCOLOR),
+        // 12: border_color
+        v_as_color(&pixel_fmt, &config, "color", "border", BORDER_COLOR),
+    ];
 
     // available game figures
-    let figures = vec![
-        figure!(fig_color_01; (0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1), (0, 2), (1, 2), (2, 2)),
-        figure!(fig_color_01; (0, 0), (1, 0), (0, 1), (1, 1)),
-        figure!(fig_color_01; (0, 0)),
-        figure!(fig_color_02; (0, 0), (0, 1), (0, 2), (0, 3), (0, 4)),
-        figure!(fig_color_02; (0, 0), (1, 0), (2, 0), (3, 0), (4, 0)),
-        figure!(fig_color_03; (0, 0), (0, 1), (0, 2), (0, 3)),
-        figure!(fig_color_03; (0, 0), (1, 0), (2, 0), (3, 0)),
-        figure!(fig_color_04; (0, 0), (0, 1), (0, 2)),
-        figure!(fig_color_04; (0, 0), (1, 0), (2, 0)),
-        figure!(fig_color_05; (0, 0), (0, 1)),
-        figure!(fig_color_05; (0, 0), (1, 0)),
-        figure!(fig_color_06; (0, 0), (1, 0), (2, 0), (2, 1), (2, 2)),
-        figure!(fig_color_06; (2, 0), (2, 1), (0, 2), (1, 2), (2, 2)),
-        figure!(fig_color_06; (0, 0), (0, 1), (0, 2), (1, 2), (2, 2)),
-        figure!(fig_color_06; (0, 0), (1, 0), (2, 0), (0, 1), (0, 2)),
-        figure!(fig_color_07; (0, 0), (1, 0), (2, 0), (2, 1)),
-        figure!(fig_color_07; (1, 0), (1, 1), (0, 2), (1, 2)),
-        figure!(fig_color_07; (0, 0), (0, 1), (1, 1), (2, 1)),
-        figure!(fig_color_07; (0, 0), (1, 0), (0, 1), (0, 2)),
-        figure!(fig_color_08; (0, 0), (1, 0), (1, 1)),
-        figure!(fig_color_08; (1, 0), (0, 1), (1, 1)),
-        figure!(fig_color_08; (0, 0), (0, 1), (1, 1)),
-        figure!(fig_color_08; (0, 0), (1, 0), (0, 1)),
+    let figures = &[
+        figure!(0, palette[0]; (0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1), (0, 2), (1, 2), (2, 2)),
+        figure!(1, palette[0]; (0, 0), (1, 0), (0, 1), (1, 1)),
+        figure!(2, palette[0]; (0, 0)),
+        figure!(3, palette[1]; (0, 0), (0, 1), (0, 2), (0, 3), (0, 4)),
+        figure!(4, palette[1]; (0, 0), (1, 0), (2, 0), (3, 0), (4, 0)),
+        figure!(5, palette[2]; (0, 0), (0, 1), (0, 2), (0, 3)),
+        figure!(6, palette[2]; (0, 0), (1, 0), (2, 0), (3, 0)),
+        figure!(7, palette[3]; (0, 0), (0, 1), (0, 2)),
+        figure!(8, palette[3]; (0, 0), (1, 0), (2, 0)),
+        figure!(9, palette[4]; (0, 0), (0, 1)),
+        figure!(10, palette[4]; (0, 0), (1, 0)),
+        figure!(11, palette[5]; (0, 0), (1, 0), (2, 0), (2, 1), (2, 2)),
+        figure!(12, palette[5]; (2, 0), (2, 1), (0, 2), (1, 2), (2, 2)),
+        figure!(13, palette[5]; (0, 0), (0, 1), (0, 2), (1, 2), (2, 2)),
+        figure!(14, palette[5]; (0, 0), (1, 0), (2, 0), (0, 1), (0, 2)),
+        figure!(15, palette[6]; (0, 0), (1, 0), (2, 0), (2, 1)),
+        figure!(16, palette[6]; (1, 0), (1, 1), (0, 2), (1, 2)),
+        figure!(17, palette[6]; (0, 0), (0, 1), (1, 1), (2, 1)),
+        figure!(18, palette[7]; (0, 0), (1, 0), (0, 1), (0, 2)),
+        figure!(19, palette[7]; (0, 0), (1, 0), (1, 1)),
+        figure!(20, palette[7]; (1, 0), (0, 1), (1, 1)),
+        figure!(21, palette[7]; (0, 0), (0, 1), (1, 1)),
+        figure!(22, palette[7]; (0, 0), (1, 0), (0, 1)),
     ];
 
     // game scores
@@ -145,7 +162,7 @@ fn main() {
         game::BasketSystem::new(BASKET_COUNT, BASKET_SIZE, TILE_SIZE_2, TILE_SEP_2, basket_pos, basket_shift);
 
     // fill basket by random figures
-    basket.fill(&figures);
+    basket.fill(figures);
 
     // fps block
     let fps = config.get("game", "fps").unwrap_or(DEFAULT_FPS_PARAM);
@@ -155,25 +172,33 @@ fn main() {
     let mut game_start = SystemTime::now();
     let mut game_stop = game_start.elapsed();
 
+    // restore game state
+    if let Some(state) = config.get::<String>("game", "state") {
+        save::deserialize(state, &palette[6], figures, &mut field, &mut basket, &mut score, &mut game_start);
+        game_stop = game_start.elapsed();
+    }
+
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
         // render cycle: text, field & basket
-        canvas.set_draw_color(bg_color);
+        canvas.set_draw_color(palette[8]);
         canvas.clear();
-        msg!(render::font(&mut canvas, &font, score_pos, font_color, &format!("{:08}", score)); canvas.window(), GT);
-        msg!(render::font(&mut canvas, &font, highscore_pos, font_color, &format!("{:08}", highscore));
+        msg!(render::font(&mut canvas, &font, score_pos, palette[10], &format!("{:08}", score)); canvas.window(), GT);
+        msg!(render::font(&mut canvas, &font, highscore_pos, palette[10], &format!("{:08}", highscore));
                  canvas.window(), GT);
-        msg!(render::font(&mut canvas, &font, timer_pos, font_color, &extra::as_time_str(&game_stop));
+        msg!(render::font(&mut canvas, &font, timer_pos, palette[10], &extra::as_time_str(&game_stop));
                  canvas.window(), GT);
-        msg!(field.render(&mut canvas, field_bg_color, ROUND_RADIUS); canvas.window(), GT);
-        msg!(basket.render(&mut canvas, field_bg_color, ROUND_RADIUS); canvas.window(), GT);
+        msg!(field.render(&mut canvas, palette[9], ROUND_RADIUS); canvas.window(), GT);
+        msg!(basket.render(&mut canvas, palette[9], ROUND_RADIUS); canvas.window(), GT);
 
         if gameover_flag && !name_input_flag {
             // highscore table
             let mut scores = Vec::new();
             let mut ss = coord!();
             let mut curr_score = None;
-            for (index, score::Score { name, score, time, last }) in score_table.iter().take(GAMESCORE_COUNT).enumerate() {
+            for (index, score::Score { name, score, time, last }) in
+                score_table.iter().take(GAMESCORE_COUNT).enumerate()
+            {
                 let name = if name.chars().count() > MAX_NAME_SIZE {
                     format!("{}...", &name[..MAX_NAME_SIZE - 3])
                 } else {
@@ -193,12 +218,12 @@ fn main() {
             let p2 = fp1 + coord!(fsx as i16, ss.y + fsy as i16 - BORDER) + 2 * BORDER;
             let p3 = p1 + BORDER;
             let p4 = p2 - BORDER;
-            msg!(render::fill_rounded_rect(&mut canvas, p1, p2, BIG_ROUND_RADIUS, border_color); canvas.window(), GT);
-            msg!(render::fill_rounded_rect(&mut canvas, p3, p4, BIG_ROUND_RADIUS, bg_color); canvas.window(), GT);
-            msg!(render::font(&mut canvas, &font_big, fp1, font_color, GAME_OVER); canvas.window(), GT);
+            msg!(render::fill_rounded_rect(&mut canvas, p1, p2, BIG_ROUND_RADIUS, palette[12]); canvas.window(), GT);
+            msg!(render::fill_rounded_rect(&mut canvas, p3, p4, BIG_ROUND_RADIUS, palette[8]); canvas.window(), GT);
+            msg!(render::font(&mut canvas, &font_big, fp1, palette[10], GAME_OVER); canvas.window(), GT);
             for (index, text) in scores.iter().enumerate() {
                 let fp2 = fp1 + coord!(0, fsy as i16 + index as i16 * (ss.y / scores.len() as i16)) - coord!(0, BORDER);
-                let fcolor = if Some(index) == curr_score { light_font_color } else { font_color };
+                let fcolor = if Some(index) == curr_score { palette[11] } else { palette[10] };
                 msg!(render::font(&mut canvas, &font_min, fp2, fcolor, text); canvas.window(), GT);
             }
         } else if gameover_flag && name_input_flag {
@@ -211,10 +236,10 @@ fn main() {
             let p4 = p2 - BORDER;
             let fp2 = fp1 + coord!(0, fsy as i16 - BORDER);
             let input_name = format!("{}{}", GAME_OVER_TEXT, user_name);
-            msg!(render::fill_rounded_rect(&mut canvas, p1, p2, BIG_ROUND_RADIUS, border_color); canvas.window(), GT);
-            msg!(render::fill_rounded_rect(&mut canvas, p3, p4, BIG_ROUND_RADIUS, bg_color); canvas.window(), GT);
-            msg!(render::font(&mut canvas, &font_big, fp1, font_color, GAME_OVER); canvas.window(), GT);
-            msg!(render::font(&mut canvas, &font, fp2, font_color, &input_name); canvas.window(), GT);
+            msg!(render::fill_rounded_rect(&mut canvas, p1, p2, BIG_ROUND_RADIUS, palette[12]); canvas.window(), GT);
+            msg!(render::fill_rounded_rect(&mut canvas, p3, p4, BIG_ROUND_RADIUS, palette[8]); canvas.window(), GT);
+            msg!(render::font(&mut canvas, &font_big, fp1, palette[10], GAME_OVER); canvas.window(), GT);
+            msg!(render::font(&mut canvas, &font, fp2, palette[10], &input_name); canvas.window(), GT);
         } else {
             // stop game timer
             game_stop = game_start.elapsed();
@@ -270,7 +295,7 @@ fn main() {
                     if gameover_flag && !name_input_flag {
                         // restart game
                         gameover_flag = false;
-                        basket.fill(&figures);
+                        basket.fill(figures);
                         field.clear();
                         score = 0;
                         game_start = SystemTime::now();
@@ -303,7 +328,7 @@ fn main() {
         }
         // refill baskets
         if current_figure == None {
-            basket.check_and_refill(&figures);
+            basket.check_and_refill(figures);
         }
         // update highscore
         highscore = highscore.max(score);
@@ -332,8 +357,14 @@ fn main() {
         }
     }
 
-    // add game score when game closed
-    score_table.push(DEFAULT_USER_NAME.to_string(), score, extra::as_time_str(&game_stop));
+    // save game state
+    if score > 0 {
+        // generate state
+        let state = save::serialize(field, basket, score, game_start);
+        // update config
+        config = config.section("game").item("state", state);
+    }
+
     // update highscore results
     msg!(score_table.to_config(GAMESCORE_COUNT, config).to_file(CONFIG_FILE); canvas.window(), GT);
 }

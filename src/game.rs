@@ -24,7 +24,7 @@ enum State {
 }
 
 pub struct Field {
-    field_size: Coord,
+    pub field_size: Coord,
     tile_size: Coord,
     tile_sep: Coord,
     pos: Coord,
@@ -39,6 +39,8 @@ pub struct Field {
 pub struct Figure {
     blocks: HashSet<Coord>,
     color: Color,
+    // не лучший вариант для идентфикации фигуры
+    pub index: u8,
 }
 
 pub struct Basket {
@@ -80,6 +82,20 @@ impl Field {
         }
     }
 
+    pub fn set(&mut self, pos: Coord, color: Color) {
+        self.field.insert(pos);
+        self.colors.insert(pos, color);
+    }
+
+    pub fn unset(&mut self, pos: &Coord) {
+        self.field.remove(pos);
+        self.colors.remove(pos);
+    }
+
+    pub fn is_set(&self, pos: &Coord) -> bool {
+        self.field.contains(pos)
+    }
+
     pub fn get_cell_index(&self, pos: &Coord) -> Coord {
         (*pos - self.pos).floor_frac(self.tile_size + self.tile_sep).normalize(coord!(), self.field_size)
     }
@@ -107,24 +123,10 @@ impl Field {
         let not_intersect = self.field.intersection(&new_figure.blocks).count() == 0;
         if not_intersect {
             for p in new_figure.blocks {
-                self.field.insert(p);
-                self.colors.insert(p, figure.color);
+                self.set(p, figure.color);
             }
         }
         not_intersect
-    }
-
-    #[cfg(debug_assertion)]
-    pub fn set_vec(&mut self, v: Vec<Vec<u8>>, c: Color) {
-        for (y, row) in v.into_iter().enumerate() {
-            for (x, item) in row.into_iter().enumerate() {
-                if item == 1 {
-                    let pos = coord!(x as i16, y as i16);
-                    self.field.insert(pos);
-                    self.colors.insert(pos, c);
-                }
-            }
-        }
     }
 
     fn check_line_h(&self, index: u8) -> Option<bool> {
@@ -137,11 +139,7 @@ impl Field {
                 counter += 1;
             }
         }
-        if counter == self.field_size.x {
-            Some(true)
-        } else {
-            Some(false)
-        }
+        Some(counter == self.field_size.x)
     }
 
     fn check_line_v(&self, index: u8) -> Option<bool> {
@@ -154,19 +152,14 @@ impl Field {
                 counter += 1;
             }
         }
-        if counter == self.field_size.y {
-            Some(true)
-        } else {
-            Some(false)
-        }
+        Some(counter == self.field_size.y)
     }
 
     fn remove_blocks(&mut self) {
         let blocks = self.clear.clone();
         for (x, y) in blocks {
             let p = coord!(x, y);
-            self.field.remove(&p);
-            self.colors.remove(&p);
+            self.unset(&p);
         }
         self.clear.clear();
     }
@@ -297,12 +290,12 @@ impl Field {
 }
 
 impl Figure {
-    pub fn from_slice(coords: &[Coord], color: Color) -> Figure {
+    pub fn from_slice(index: u8, coords: &[Coord], color: Color) -> Figure {
         let mut blocks = HashSet::new();
         for p in coords {
             blocks.insert(*p);
         }
-        Figure { blocks, color }
+        Figure { blocks, color, index }
     }
 
     pub fn shift(&self, pos: Coord) -> Figure {
@@ -310,7 +303,7 @@ impl Figure {
         for block in self.blocks.clone() {
             blocks.insert(pos + block);
         }
-        Figure { blocks, color: self.color }
+        Figure { blocks, color: self.color, index: self.index }
     }
 
     pub fn blocks(&self) -> u32 {
@@ -430,7 +423,7 @@ impl BasketSystem {
         }
     }
 
-    pub fn fill(&mut self, figures: &Vec<Figure>) {
+    pub fn fill(&mut self, figures: &[Figure]) {
         let size = figures.len();
         for index in 0..self.basket.len() {
             let item = self.rnd.rand() as usize % size;
@@ -438,14 +431,7 @@ impl BasketSystem {
         }
     }
 
-    #[cfg(debug_assertion)]
-    pub fn set_vec(&mut self, figures: Vec<Figure>) {
-        for (index, f) in figures.into_iter().enumerate() {
-            self.basket[index].push(f);
-        }
-    }
-
-    pub fn check_and_refill(&mut self, figures: &Vec<Figure>) {
+    pub fn check_and_refill(&mut self, figures: &[Figure]) {
         for item in &self.basket {
             if item.figure != None {
                 return;
@@ -462,6 +448,10 @@ impl BasketSystem {
             }
         }
         figures
+    }
+
+    pub fn destroy(self) -> Vec<Basket> {
+        self.basket
     }
 
     pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color, radius: i16) -> Result<(), String> {
