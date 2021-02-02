@@ -112,12 +112,14 @@ pub fn deserialize(
     }
 
     // восстанавливаем фигуры в корзинах
-    let mut figs = Vec::new();
-    for index in basket_range.step_by(figure_size) {
-        let fig_index = as_int(&data[index..index + figure_size]);
-        figs.push(figures[fig_index].clone());
+    for (index, v) in basket_range.step_by(figure_size).enumerate() {
+        let findex = as_int(&data[v..v + figure_size]);
+        if findex > 0 {
+            basket.set(index, figures[findex - 1].clone());
+        } else {
+            basket.pop(index);
+        }
     }
-    basket.fill(&figs);
 
     // восстанавливаем игровой счёт
     *score = as_int(&data[score_range]) as u32;
