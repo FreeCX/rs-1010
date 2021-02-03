@@ -358,7 +358,7 @@ fn main() {
     }
 
     // save game state
-    if score > 0 {
+    if score > 0 && !gameover_flag {
         let state = save::serialize(field, basket, score, game_start);
         config = config.section("game").item("state", state);
     }
