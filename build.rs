@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::process::Command;
 use std::{fs::read_to_string, fs::File, io::Write};
 
+// execute app and get stdout
 fn execute(cmd: &str, args: &[&str]) -> String {
     match Command::new(cmd).args(args).output() {
         Ok(value) => match String::from_utf8(value.stdout) {
@@ -15,6 +16,7 @@ fn execute(cmd: &str, args: &[&str]) -> String {
     }
 }
 
+// parse rustc and cargo stdout
 fn parse(s: String) -> HashMap<String, String> {
     let mut res = HashMap::new();
     for line in s.lines() {
@@ -28,6 +30,7 @@ fn parse(s: String) -> HashMap<String, String> {
     res
 }
 
+// get packages info from Cargo.lock
 fn app_packages() -> String {
     let mut counter = 0;
     let mut name = String::new();
@@ -51,7 +54,11 @@ fn app_packages() -> String {
 
 fn main() {
     // generate build info
-    let mut source_code = "#![allow(dead_code)]\n".to_string();
+    let mut source_code = include_str!("extra/build_rs_header.txt").to_string();
+    // add comment line
+    source_code.push_str("// builder info\n");
+
+    // rust and cargo info
     for (prefix, executable) in [("RUST", "rustc"), ("CARGO", "cargo")].iter() {
         let iterator = parse(execute(executable, &["-vV"]));
         for (k, v) in iterator {
@@ -61,15 +68,23 @@ fn main() {
         }
     }
 
-    // add git project info
-    let git_hash = &include_str!(".git/FETCH_HEAD")[..9];
-    let build_date = execute("date", &["-u", "+%Y-%m-%d"]);
-    let git_project_info = format!("pub static GIT_PROJECT_INFO: &'static str = \"{} {}\";\n", git_hash, build_date);
-    source_code.push_str(&git_project_info);
+    // and another comment line
+    source_code.push_str("// project info\n");
+
+    // add git project head hash
+    let git_hash = include_str!(".git/ORIG_HEAD").trim();
+    let git_project_hash = format!("pub static GIT_PROJECT_HASH: &'static str = \"{}\";\n", git_hash);
+    source_code.push_str(&git_project_hash);
+    
+    // add build datetime
+    let build_date = execute("date", &["-u", "+%Y-%m-%d %H:%M:%S"]);
+    let project_build_date = format!("pub static PROJECT_BUILD_DATE: &'static str = \"{}\"; // UTC+0\n", build_date);
+    source_code.push_str(&project_build_date);
 
     // add packages in Cargo.lock
     source_code.push_str(&app_packages());
 
+    // and write to build.rs file
     File::create("src/build.rs").and_then(|mut file| write!(file, "{}", source_code)).unwrap();
 
     // set icon for windows binary
