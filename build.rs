@@ -75,7 +75,7 @@ fn main() {
     let git_hash = include_str!(".git/ORIG_HEAD").trim();
     let git_project_hash = format!("pub static GIT_PROJECT_HASH: &'static str = \"{}\";\n", git_hash);
     source_code.push_str(&git_project_hash);
-    
+
     // add build datetime
     let build_date = execute("date", &["-u", "+%Y-%m-%d %H:%M:%S"]);
     let project_build_date = format!("pub static PROJECT_BUILD_DATE: &'static str = \"{}\"; // UTC+0\n", build_date);
