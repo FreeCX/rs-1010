@@ -39,7 +39,7 @@ pub struct Field {
 pub struct Figure {
     blocks: HashSet<Coord>,
     color: Color,
-    // не лучший вариант для идентфикации фигуры
+    // not the best way to identify figure
     pub index: u8,
 }
 
@@ -194,14 +194,10 @@ impl Field {
 
     pub fn update_state(&mut self, x: i16, y: i16, p: u8) {
         match &self.state {
-            State::Wait => {
-                self.state = State::Clear(p);
-                self.clear.insert((x, y));
-            }
-            State::Clear(_) => {
-                self.clear.insert((x, y));
-            }
+            State::Wait => self.state = State::Clear(p),
+            State::Clear(_) => {}
         };
+        self.clear.insert((x, y));
     }
 
     pub fn next_state(&mut self) -> Option<Lines> {

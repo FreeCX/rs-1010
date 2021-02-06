@@ -1,34 +1,4 @@
-// default config
-pub const DEFAULT_CONFIG: &'static str = r#"
-[score]
-users =
-scores =
-times =
-
-[game]
-show_highscore_at_start = false
-magnetization = false
-blend = true
-alpha = 150
-fps = 60
-username = user
-ask_username = true
-
-[color]
-game_background = 100, 100, 100
-field_background = 170, 170, 170
-font = 200, 200, 200
-light = 255, 255, 255
-border = 210, 210, 210
-fig1 = 230, 100, 100
-fig2 = 230, 210, 100
-fig3 = 100, 230, 100
-fig4 = 230, 100, 200
-fig5 = 100, 230, 200
-fig6 = 100, 200, 230
-fig7 = 100, 100, 230
-fig8 = 210, 100, 230
-"#;
+use tini::Ini;
 
 // game strings
 pub const GAME_OVER_TEXT: &'static str = "your name:";
@@ -115,3 +85,32 @@ pub const FIG_COLOR_05: u32 = (100 << 16) + (230 << 8) + 200;
 pub const FIG_COLOR_06: u32 = (100 << 16) + (200 << 8) + 230;
 pub const FIG_COLOR_07: u32 = (100 << 16) + (100 << 8) + 230;
 pub const FIG_COLOR_08: u32 = (210 << 16) + (100 << 8) + 230;
+
+// ... you know what it is
+pub fn default_config() -> Ini {
+    Ini::new()
+        .section("score")
+        .items(vec![("users", ""), ("scores", ""), ("times", "")])
+        .section("game")
+        .item("show_highscore_at_start", false)
+        .item("magnetization", false)
+        .item("blend", true)
+        .item("alpha", 150)
+        .item("fps", 60)
+        .item("username", "user")
+        .item("ask_username", true)
+        .section("color")
+        .item_vec("game_background", &[100, 100, 100])
+        .item_vec("field_background", &[170, 170, 170])
+        .item_vec("font", &[200, 200, 200])
+        .item_vec("light", &[255, 255, 255])
+        .item_vec("border", &[210, 210, 210])
+        .item_vec("fig1", &[230, 100, 100])
+        .item_vec("fig2", &[230, 210, 100])
+        .item_vec("fig3", &[100, 230, 100])
+        .item_vec("fig4", &[230, 100, 200])
+        .item_vec("fig5", &[100, 230, 200])
+        .item_vec("fig6", &[100, 200, 230])
+        .item_vec("fig7", &[100, 100, 230])
+        .item_vec("fig8", &[210, 100, 230])
+}

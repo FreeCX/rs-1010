@@ -48,8 +48,8 @@ fn main() {
     let mut config = match Ini::from_file(CONFIG_FILE) {
         Ok(value) => value,
         Err(e) => {
-            eprintln!("[warning] config: {}", e);
-            Ini::from_string(DEFAULT_CONFIG).expect("cannot load default config")
+            eprintln!("[warning] problem with config: {}", e);
+            default_config()
         }
     };
     let magnetization = config.get("game", "magnetization").unwrap_or(DEFAULT_MAGNET_PARAM);
@@ -174,7 +174,12 @@ fn main() {
 
     // restore game state
     if let Some(state) = config.get::<String>("game", "state") {
+        // remove state from config (ignore errors)
+        config = config.section("game").erase("state");
+        let _ = config.to_file(CONFIG_FILE);
+        // deserialize
         save::deserialize(state, &palette[6], figures, &mut field, &mut basket, &mut score, &mut game_start);
+        // update timer
         game_stop = game_start.elapsed();
     }
 
@@ -358,7 +363,7 @@ fn main() {
     }
 
     // save game state
-    if score > 0 && !gameover_flag {
+    if score > 0 && !gameover_flag && !name_input_flag {
         let state = save::serialize(field, basket, score, game_start);
         config = config.section("game").item("state", state);
     }
