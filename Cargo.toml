@@ -1,6 +1,6 @@
 [package]
 name = "rs-1010"
-version = "0.7.1"
+version = "0.7.2"
 authors = ["Alexey Golubev <dr.freecx@gmail.com>"]
 edition = "2018"
 build = "build.rs"
@@ -12,6 +12,9 @@ version = ">=0.34"
 [dependencies]
 tini = "1.0"
 backtrace = ">=0.3"
+
+[build-dependencies]
+chrono = "0.4"
 
 [target.'cfg(windows)'.build-dependencies]
 winres = ">=0.1"

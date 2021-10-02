@@ -1,5 +1,6 @@
 #[cfg(windows)]
 extern crate winres;
+extern crate chrono;
 
 use std::collections::HashMap;
 use std::process::Command;
@@ -35,14 +36,17 @@ fn app_packages() -> String {
     let mut counter = 0;
     let mut name = String::new();
     let mut packages = String::new();
+    let mut name_flag = false;
 
     let data = read_to_string("Cargo.lock").unwrap();
 
     for line in data.lines() {
         if line.starts_with("name = ") {
             name = line[7..].to_string();
+            name_flag = true;
         }
-        if line.starts_with("version =") {
+        if line.starts_with("version =") && name_flag {
+            name_flag = false;
             // (name, version)
             packages.push_str(&format!("    ({}, {}),\n", name, &line[10..]));
             counter += 1;
@@ -50,6 +54,12 @@ fn app_packages() -> String {
     }
 
     format!("pub static APP_PACKAGES: [(&'static str, &'static str); {}] = [\n{}];", counter, packages)
+}
+
+fn get_current_date() -> String {
+    use chrono::prelude::*;
+    let utc: DateTime<Utc> = Utc::now();
+    utc.format("%Y-%m-%d %H:%M:%S").to_string()
 }
 
 fn main() {
@@ -77,7 +87,7 @@ fn main() {
     source_code.push_str(&git_project_hash);
 
     // add build datetime
-    let build_date = execute("date", &["-u", "+%Y-%m-%d %H:%M:%S"]);
+    let build_date = get_current_date();
     let project_build_date = format!("pub static PROJECT_BUILD_DATE: &'static str = \"{}\"; // UTC+0\n", build_date);
     source_code.push_str(&project_build_date);
 

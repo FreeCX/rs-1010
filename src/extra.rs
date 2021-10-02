@@ -59,7 +59,7 @@ macro_rules! msg {
                     $wnd,
                 )
                 .unwrap_or(());
-                panic!(err);
+                panic!("{}", err);
             }
         }
     };
