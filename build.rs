@@ -1,6 +1,6 @@
+extern crate chrono;
 #[cfg(windows)]
 extern crate winres;
-extern crate chrono;
 
 use std::collections::HashMap;
 use std::process::Command;
@@ -59,7 +59,7 @@ fn app_packages() -> String {
 fn get_current_date() -> String {
     use chrono::prelude::*;
     let utc: DateTime<Utc> = Utc::now();
-    utc.format("%Y-%m-%d %H:%M:%S").to_string()
+    utc.format("%Y-%m-%d %H:%M:%S %z").to_string()
 }
 
 fn main() {
