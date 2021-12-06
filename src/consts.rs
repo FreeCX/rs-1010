@@ -7,7 +7,6 @@ pub const GT: &'static str = "1010";
 
 // errors
 pub const INIT_SDL_ERROR: &'static str = "Cannot init sdl2 context";
-pub const INIT_SDL_SUBSYSTEM_ERROR: &'static str = "Cannot create video subsystem";
 pub const INIT_WINDOW_ERROR: &'static str = "Cannot create window";
 pub const GET_CANVAS_ERROR: &'static str = "Cannot get canvas";
 pub const GET_COLOR_ERROR: &'static str = "Cannot get color";
@@ -113,4 +112,14 @@ pub fn default_config() -> Ini {
         .item_vec("fig6", &[100, 200, 230])
         .item_vec("fig7", &[100, 100, 230])
         .item_vec("fig8", &[210, 100, 230])
+}
+
+#[macro_export]
+macro_rules! subsystem_error {
+    (create; $x:expr) => {
+        format!("Cannot create {} subsystem", $x)
+    };
+    (open; $x:expr) => {
+        format!("Cannot open {}", $x)
+    };
 }

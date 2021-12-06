@@ -9,6 +9,7 @@ use std::time::SystemTime;
 
 use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, Scancode};
+use sdl2::mixer::{InitFlag, AUDIO_S16LSB, DEFAULT_CHANNELS};
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::{Color, PixelFormat, PixelFormatEnum};
 use tini::Ini;
@@ -25,6 +26,7 @@ mod random;
 mod render;
 mod save;
 mod score;
+mod sound;
 
 fn v_as_color(pixel_fmt: &PixelFormat, config: &Ini, section: &str, param: &str, default: u32) -> Color {
     let color = match config.get_vec::<u8>(section, param) {
@@ -70,7 +72,15 @@ fn main() {
 
     // SDL2
     let sdl_context = sdl2::init().expect(INIT_SDL_ERROR);
-    let video_subsystem = sdl_context.video().expect(INIT_SDL_SUBSYSTEM_ERROR);
+    let video_subsystem = sdl_context.video().expect(&subsystem_error!(create; "video"));
+    // init audio subsystem
+    let _audio_subsystem = sdl_context.audio().expect(&subsystem_error!(create; "audio"));
+    sdl2::mixer::open_audio(44100, AUDIO_S16LSB, DEFAULT_CHANNELS, 1024)
+        .expect(&subsystem_error!(open; "audio device"));
+    let _mixer_context = sdl2::mixer::init(InitFlag::all()).expect(&subsystem_error!(create; "mixer"));
+    sdl2::mixer::allocate_channels(1);
+    let mut audio = sound::SoundSystem::new();
+
     let window = video_subsystem.window(GT, W_WIDTH, W_HEIGHT).position_centered().build().expect(INIT_WINDOW_ERROR);
     let mut canvas = window.into_canvas().build().expect(GET_CANVAS_ERROR);
     let mut timer = msg!(sdl_context.timer(); canvas.window(), GT);
