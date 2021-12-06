@@ -2,22 +2,22 @@
 name = "rs-1010"
 version = "0.7.2"
 authors = ["Alexey Golubev <dr.freecx@gmail.com>"]
-edition = "2018"
+edition = "2021"
 build = "build.rs"
 
 [dependencies.sdl2]
-features = ["ttf"]
-version = ">=0.34"
+version = "0.35"
+features = ["ttf", "mixer"]
 
 [dependencies]
 tini = "1.0"
-backtrace = ">=0.3"
+backtrace = "0.3"
 
 [build-dependencies]
 chrono = "0.4"
 
 [target.'cfg(windows)'.build-dependencies]
-winres = ">=0.1"
+winres = "0.1"
 
 [package.metadata.winres]
 LegalCopyright = "https://github.com/FreeCX/rs-1010"
