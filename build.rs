@@ -21,7 +21,7 @@ fn execute(cmd: &str, args: &[&str]) -> String {
 fn parse(s: String) -> HashMap<String, String> {
     let mut res = HashMap::new();
     for line in s.lines() {
-        let block: Vec<&str> = line.split(":").collect();
+        let block: Vec<&str> = line.splitn(2, ":").collect();
         if block.len() == 1 {
             res.insert("header".to_string(), block[0].trim().to_string());
         } else {
@@ -38,7 +38,10 @@ fn app_packages() -> String {
     let mut packages = String::new();
     let mut name_flag = false;
 
-    let data = read_to_string("Cargo.lock").unwrap();
+    let data = match read_to_string("Cargo.lock") {
+        Ok(value) => value,
+        Err(err) => panic!("Cannot read Cargo.lock: {}", err),
+    };
 
     for line in data.lines() {
         if line.starts_with("name = ") {
@@ -78,30 +81,38 @@ fn main() {
         }
     }
 
-    // and another comment line
-    source_code.push_str("// project info\n");
-
-    // add git project head hash
+    // add project info
     let git_hash = include_str!(".git/ORIG_HEAD").trim();
-    let git_project_hash = format!("pub static GIT_PROJECT_HASH: &'static str = \"{}\";\n", git_hash);
-    source_code.push_str(&git_project_hash);
-
-    // add build datetime
-    let build_date = get_current_date();
-    let project_build_date = format!("pub static PROJECT_BUILD_DATE: &'static str = \"{}\"; // UTC+0\n", build_date);
-    source_code.push_str(&project_build_date);
+    let git_branch = include_str!(".git/HEAD").rsplitn(2, "/").nth(0).unwrap_or("-").trim();
+    let project_info = format!(
+        "// project info\n\
+        pub static GIT_PROJECT_BRANCH: &'static str = \"{}\";\n\
+        pub static GIT_PROJECT_HASH: &'static str = \"{}\";\n\
+        pub static PROJECT_BUILD_DATE: &'static str = \"{}\"; // UTC+0\n\
+        // packages\n",
+        git_branch,
+        git_hash,
+        get_current_date()
+    );
+    source_code.push_str(&project_info);
 
     // add packages in Cargo.lock
     source_code.push_str(&app_packages());
 
     // and write to build.rs file
-    File::create("src/build.rs").and_then(|mut file| write!(file, "{}", source_code)).unwrap();
+    match File::create("src/build.rs").and_then(|mut file| write!(file, "{}", source_code)) {
+        Ok(_) => (),
+        Err(err) => panic!("Cannot create `build.rs`: {}", err),
+    }
 
     // set icon for windows binary
     #[cfg(windows)]
     {
         let mut res = winres::WindowsResource::new();
         res.set_icon("extra/icon.ico");
-        res.compile().unwrap();
+        match res.compile() {
+            Ok(_) => (),
+            Err(err) => panic!("Cannot compile winres: {}", err),
+        }
     }
 }

@@ -16,18 +16,21 @@ pub fn panic_handler(panic_info: &panic::PanicInfo) {
          Thank you!\n\n\
          --- crash report start ---\n\
          name: {}\n\
-         version: {} ({} {})\n\
+         version: {} ({} {} {})\n\
          compiler: {}\n\
          package manager: {}\n\
-         host: {}\n",
+         host: {}\n\
+         os: {}\n",
         env!("CARGO_PKG_AUTHORS"),
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
+        build::GIT_PROJECT_BRANCH,
         build::GIT_PROJECT_HASH,
         build::PROJECT_BUILD_DATE,
         build::RUST_HEADER,
         build::CARGO_HEADER,
         build::RUST_HOST,
+        build::CARGO_OS,
     ));
 
     buffer.push_str("packages:\n");
