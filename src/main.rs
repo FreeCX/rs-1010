@@ -94,6 +94,13 @@ fn main() {
     // game pixel format
     let pixel_fmt: PixelFormat = msg!(PixelFormat::try_from(PixelFormatEnum::RGB24); canvas.window(), GT);
 
+    // configure audio system
+    audio.set_status(config.get("audio", "enabled").unwrap_or(true));
+    audio.set_volume(config.get("audio", "volume").unwrap_or(128));
+    // and load all audio tracks
+    audio.batch_load(consts::AUDIO_TRACKS);
+
+    // game palette
     let palette = [
         // 00
         v_as_color(&pixel_fmt, &config, "color", "fig1", FIG_COLOR_01),
@@ -374,6 +381,7 @@ fn main() {
                     // figure set | return
                     current_figure = match current_figure {
                         Some(ref figure) => {
+                            audio.play(consts::CLACK);
                             let sel_pos = if magnetization { figure_pos } else { mouse_pos };
                             if !field.set_figure(&sel_pos, &figure) {
                                 basket.ret(figure.clone());
@@ -382,7 +390,13 @@ fn main() {
                             }
                             None
                         }
-                        None => basket.get(coord!(x as i16, y as i16)),
+                        None => {
+                            let item = basket.get(coord!(x as i16, y as i16));
+                            if item.is_some() {
+                                audio.play(consts::CLICK);
+                            }
+                            item
+                        }
                     };
                 }
                 _ => {}

@@ -85,6 +85,15 @@ pub const FIG_COLOR_06: u32 = (100 << 16) + (200 << 8) + 230;
 pub const FIG_COLOR_07: u32 = (100 << 16) + (100 << 8) + 230;
 pub const FIG_COLOR_08: u32 = (210 << 16) + (100 << 8) + 230;
 
+// id for audio tracks
+pub const CLICK: u8 = 0;
+pub const CLACK: u8 = 1;
+pub const AUDIO_TRACKS: [(u8, &'static str); 2] = [
+    (CLICK, "./resources/click.ogg"),
+    (CLACK, "./resources/clack.ogg"),
+    // TODO
+];
+
 // ... you know what it is
 pub fn default_config() -> Ini {
     Ini::new()
@@ -98,6 +107,9 @@ pub fn default_config() -> Ini {
         .item("fps", 60)
         .item("username", "user")
         .item("ask_username", true)
+        .section("audio")
+        .item("enabled", true)
+        .item("volume", 128)
         .section("color")
         .item_vec("game_background", &[100, 100, 100])
         .item_vec("field_background", &[170, 170, 170])
