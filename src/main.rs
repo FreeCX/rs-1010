@@ -95,10 +95,10 @@ fn main() {
     let pixel_fmt: PixelFormat = msg!(PixelFormat::try_from(PixelFormatEnum::RGB24); canvas.window(), GT);
 
     // configure audio system
-    audio.set_status(config.get("audio", "enabled").unwrap_or(true));
-    audio.set_volume(config.get("audio", "volume").unwrap_or(128));
+    audio.set_status(config.get("audio", "enabled").unwrap_or(DEFAULT_EFFECTS_ENABLE));
+    audio.set_volume(config.get("audio", "volume").unwrap_or(DEFAULT_AUDIO_VOLUME));
     // and load all audio tracks
-    audio.batch_load(consts::AUDIO_TRACKS);
+    audio.batch_load(EFFECTS_TRACKS);
 
     // game palette
     let palette = [
@@ -355,6 +355,7 @@ fn main() {
                                 user_name.clear();
                                 name_input_flag = false;
                                 field.clear();
+                                basket.clear();
                             }
                             Scancode::Backspace => {
                                 user_name.pop();
@@ -408,7 +409,7 @@ fn main() {
             score += (lines.x + lines.y + lines.x * lines.y) * LINE_MULTIPLIER;
         }
         // refill baskets
-        if current_figure == None {
+        if current_figure == None && !gameover_flag {
             basket.check_and_refill(figures);
         }
         // update highscore

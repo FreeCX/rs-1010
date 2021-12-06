@@ -1,7 +1,7 @@
 use tini::Ini;
 
 // game strings
-pub const GAME_OVER_TEXT: &'static str = "your name:";
+pub const GAME_OVER_TEXT: &'static str = "your name: ";
 pub const GAME_OVER: &'static str = "GAME OVER";
 pub const GT: &'static str = "1010";
 
@@ -88,11 +88,13 @@ pub const FIG_COLOR_08: u32 = (210 << 16) + (100 << 8) + 230;
 // id for audio tracks
 pub const CLICK: u8 = 0;
 pub const CLACK: u8 = 1;
-pub const AUDIO_TRACKS: [(u8, &'static str); 2] = [
+pub const EFFECTS_TRACKS: [(u8, &'static str); 2] = [
     (CLICK, "./resources/click.ogg"),
     (CLACK, "./resources/clack.ogg"),
     // TODO
 ];
+pub const DEFAULT_AUDIO_VOLUME: u8 = 128;
+pub const DEFAULT_EFFECTS_ENABLE: bool = true;
 
 // ... you know what it is
 pub fn default_config() -> Ini {

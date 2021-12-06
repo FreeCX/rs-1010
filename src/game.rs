@@ -5,6 +5,7 @@ use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use std::collections::{HashMap, HashSet};
+use std::mem;
 use std::time::SystemTime;
 
 use crate::consts::{GET_COLOR_ERROR, SQR_SIZE};
@@ -156,10 +157,9 @@ impl Field {
     }
 
     fn remove_blocks(&mut self) {
-        for p in self.clear.clone() {
+        for p in mem::take(&mut self.clear) {
             self.unset(&p);
         }
-        self.clear.clear();
     }
 
     pub fn can_set(&self, figures: Vec<Figure>) -> bool {
@@ -296,8 +296,8 @@ impl Figure {
 
     pub fn shift(&self, pos: Coord) -> Figure {
         let mut blocks = HashSet::new();
-        for block in self.blocks.clone() {
-            blocks.insert(pos + block);
+        for block in &self.blocks {
+            blocks.insert(pos + *block);
         }
         Figure { blocks, color: self.color, index: self.index }
     }
@@ -350,9 +350,11 @@ impl Basket {
     }
 
     pub fn pop(&mut self) -> Option<Figure> {
-        let figure = self.figure.clone();
+        self.figure.take()
+    }
+
+    pub fn remove(&mut self) {
         self.figure = None;
-        figure
     }
 
     pub fn figure(&self) -> Option<Figure> {
@@ -373,11 +375,11 @@ impl Basket {
                 fill_rounded_rect(canvas, p1, p2, radius, color)?;
             }
         }
-        if let Some(figure) = self.figure.clone() {
+        if let Some(figure) = &self.figure {
             let color = figure.color;
             let cen = self.centering(&figure);
-            for pos in figure.blocks {
-                let p1 = (pos + cen) * wsize + self.pos;
+            for pos in &figure.blocks {
+                let p1 = (*pos + cen) * wsize + self.pos;
                 let p2 = p1 + wsize - self.tile_sep;
                 fill_rounded_rect(canvas, p1, p2, radius, color)?;
             }
@@ -418,6 +420,12 @@ impl BasketSystem {
 
     pub fn pop(&mut self, index: usize) {
         self.basket[index].pop();
+    }
+
+    pub fn clear(&mut self) {
+        for fig in self.basket.iter_mut() {
+            fig.remove();
+        }
     }
 
     pub fn ret(&mut self, figure: Figure) {
