@@ -1,17 +1,15 @@
 // https://en.wikipedia.org/wiki/Xorshift
-pub struct Random {
-    a: u32,
-}
+pub struct Random(u32);
 
 impl Random {
     pub fn new(seed: u32) -> Random {
-        Random { a: seed }
+        Random(seed)
     }
 
     pub fn rand(&mut self) -> u32 {
-        self.a ^= self.a << 13;
-        self.a ^= self.a >> 17;
-        self.a ^= self.a << 5;
-        self.a
+        self.0 ^= self.0 << 13;
+        self.0 ^= self.0 >> 17;
+        self.0 ^= self.0 << 5;
+        self.0
     }
 }
