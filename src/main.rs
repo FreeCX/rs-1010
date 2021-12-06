@@ -354,6 +354,7 @@ fn main() {
                                 score_table.push(fixed_user_name, score, extra::as_time_str(&game_stop));
                                 user_name.clear();
                                 name_input_flag = false;
+                                field.clear();
                             }
                             Scancode::Backspace => {
                                 user_name.pop();
@@ -370,7 +371,6 @@ fn main() {
                         // restart game
                         gameover_flag = false;
                         basket.rnd_fill(figures);
-                        field.clear();
                         score = 0;
                         game_start = SystemTime::now();
                         continue;

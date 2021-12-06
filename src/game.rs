@@ -9,7 +9,7 @@ use std::time::SystemTime;
 
 use crate::consts::{GET_COLOR_ERROR, SQR_SIZE};
 
-type Blocks = HashSet<(i16, i16)>;
+type Blocks = HashSet<Coord>;
 
 #[derive(Clone, Copy)]
 pub struct Lines {
@@ -156,9 +156,7 @@ impl Field {
     }
 
     fn remove_blocks(&mut self) {
-        let blocks = self.clear.clone();
-        for (x, y) in blocks {
-            let p = coord!(x, y);
+        for p in self.clear.clone() {
             self.unset(&p);
         }
         self.clear.clear();
@@ -185,11 +183,13 @@ impl Field {
     }
 
     pub fn clear(&mut self) {
-        self.field.clear();
-        self.colors.clear();
-        self.state = State::Wait;
+        self.state = State::Clear(SQR_SIZE);
         self.lines = Lines::empty();
         self.clear = Blocks::new();
+
+        for pos in &self.field {
+            self.clear.insert(*pos);
+        }
     }
 
     pub fn update_state(&mut self, x: i16, y: i16, p: u8) {
@@ -197,7 +197,7 @@ impl Field {
             State::Wait => self.state = State::Clear(p),
             State::Clear(_) => {}
         };
-        self.clear.insert((x, y));
+        self.clear.insert(coord!(x, y));
     }
 
     pub fn next_state(&mut self) -> Option<Lines> {
@@ -262,7 +262,7 @@ impl Field {
                 // block shift size
                 let shift = match &self.state {
                     State::Clear(p) => {
-                        if self.clear.contains(&(x, y)) {
+                        if self.clear.contains(&coord!(x, y)) {
                             coord!(SQR_SIZE as i16 - *p as i16, SQR_SIZE as i16 - *p as i16)
                         } else {
                             coord!(0, 0)
