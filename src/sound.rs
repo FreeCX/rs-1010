@@ -54,12 +54,11 @@ impl<'a> SoundSystem<'a> {
         if !self.enabled {
             return;
         }
-        match self.track.get(&id) {
-            Some(track) => match track.play(1) {
+        if let Some(track) = self.track.get(&id) {
+            match track.play(1) {
                 Ok(_) => (),
                 Err(err) => eprintln!("[warning] cannot play track `{}`: {}", id, err),
-            },
-            None => (),
+            }
         }
     }
 }

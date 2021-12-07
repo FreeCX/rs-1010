@@ -40,7 +40,7 @@ fn decode(data: String) -> String {
 }
 
 pub fn serialize(field: Field, bsystem: BasketSystem, score: u32, time: SystemTime) -> String {
-    let duration = time.elapsed().unwrap_or(Duration::from_secs(0)).as_secs();
+    let duration = time.elapsed().unwrap_or_else(|_| Duration::from_secs(0)).as_secs();
 
     // - Состояние игрового поля
     //   - 100 бит информации (10x10)

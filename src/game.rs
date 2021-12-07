@@ -163,7 +163,7 @@ impl Field {
     }
 
     pub fn can_set(&self, figures: Vec<Figure>) -> bool {
-        if figures.len() == 0 || self.state != State::Wait {
+        if figures.is_empty() || self.state != State::Wait {
             return true;
         }
         for figure in figures {
@@ -377,7 +377,7 @@ impl Basket {
         }
         if let Some(figure) = &self.figure {
             let color = figure.color;
-            let cen = self.centering(&figure);
+            let cen = self.centering(figure);
             for pos in &figure.blocks {
                 let p1 = (*pos + cen) * wsize + self.pos;
                 let p2 = p1 + wsize - self.tile_sep;

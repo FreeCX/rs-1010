@@ -1,19 +1,19 @@
 use tini::Ini;
 
 // game strings
-pub const GAME_OVER_TEXT: &'static str = "your name: ";
-pub const GAME_OVER: &'static str = "GAME OVER";
-pub const GT: &'static str = "1010";
+pub const GAME_OVER_TEXT: &str = "your name: ";
+pub const GAME_OVER: &str = "GAME OVER";
+pub const GT: &str = "1010";
 
 // errors
-pub const INIT_SDL_ERROR: &'static str = "Cannot init sdl2 context";
-pub const INIT_WINDOW_ERROR: &'static str = "Cannot create window";
-pub const GET_CANVAS_ERROR: &'static str = "Cannot get canvas";
-pub const GET_COLOR_ERROR: &'static str = "Cannot get color";
+pub const INIT_SDL_ERROR: &str = "Cannot init sdl2 context";
+pub const INIT_WINDOW_ERROR: &str = "Cannot create window";
+pub const GET_CANVAS_ERROR: &str = "Cannot get canvas";
+pub const GET_COLOR_ERROR: &str = "Cannot get color";
 
 // resource & config
-pub const FONT_FILE: &'static str = "./resources/FiraMono-Regular.ttf";
-pub const CONFIG_FILE: &'static str = "./resources/config.ini";
+pub const FONT_FILE: &str = "./resources/FiraMono-Regular.ttf";
+pub const CONFIG_FILE: &str = "./resources/config.ini";
 pub const GAMESCORE_COUNT: usize = 5;
 
 // game fps param
@@ -59,7 +59,7 @@ pub const FONT_HEIGHT: i16 = FONT_DEF_SIZE as i16 + 2;
 
 // defaul game params
 pub const DEFAULT_HIGHSCORE_AT_START: bool = false;
-pub const DEFAULT_USER_NAME: &'static str = "unknown";
+pub const DEFAULT_USER_NAME: &str = "unknown";
 pub const DEFAULT_MAGNET_PARAM: bool = true;
 pub const DEFAULT_BLEND: bool = true;
 pub const DEFAULT_ALPHA_PARAM: u8 = 150;
@@ -88,7 +88,7 @@ pub const FIG_COLOR_08: u32 = (210 << 16) + (100 << 8) + 230;
 // id for audio tracks
 pub const CLICK: u8 = 0;
 pub const CLACK: u8 = 1;
-pub const EFFECTS_TRACKS: [(u8, &'static str); 2] = [
+pub const EFFECTS_TRACKS: [(u8, &str); 2] = [
     (CLICK, "./resources/click.ogg"),
     (CLACK, "./resources/clack.ogg"),
     // TODO
@@ -129,11 +129,11 @@ pub fn default_config() -> Ini {
 }
 
 #[macro_export]
-macro_rules! subsystem_error {
+macro_rules! subsystem_panic {
     (create; $x:expr) => {
-        format!("Cannot create {} subsystem", $x)
+        panic!("Cannot create {} subsystem", $x)
     };
     (open; $x:expr) => {
-        format!("Cannot open {}", $x)
+        panic!("Cannot open {}", $x)
     };
 }

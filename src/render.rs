@@ -14,7 +14,7 @@ pub fn unfair_polygon(canvas: &mut Canvas<Window>, v: &mut [(i16, i16)], c: Colo
     let mut points = Vec::new();
     for y in min_y..=max_y {
         let c: Vec<_> = v.iter().filter(|x| x.1 == y).collect();
-        if c.len() > 0 {
+        if !c.is_empty() {
             min_x = c.iter().fold(c[0].0, |m, x| m.min(x.0));
             max_x = c.iter().fold(c[0].0, |m, x| m.max(x.0));
         }

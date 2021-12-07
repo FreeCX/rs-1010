@@ -21,7 +21,7 @@ fn execute(cmd: &str, args: &[&str]) -> String {
 fn parse(s: String) -> HashMap<String, String> {
     let mut res = HashMap::new();
     for line in s.lines() {
-        let block: Vec<&str> = line.splitn(2, ":").collect();
+        let block: Vec<&str> = line.splitn(2, ':').collect();
         if block.len() == 1 {
             res.insert("header".to_string(), block[0].trim().to_string());
         } else {
@@ -44,19 +44,21 @@ fn app_packages() -> String {
     };
 
     for line in data.lines() {
-        if line.starts_with("name = ") {
-            name = line[7..].to_string();
+        if let Some(data) = line.strip_prefix("name = ") {
+            name = data.to_string();
             name_flag = true;
         }
-        if line.starts_with("version =") && name_flag {
-            name_flag = false;
-            // (name, version)
-            packages.push_str(&format!("    ({}, {}),\n", name, &line[10..]));
-            counter += 1;
+        if name_flag {
+            if let Some(data) = line.strip_prefix("version = ") {
+                name_flag = false;
+                // (name, version)
+                packages.push_str(&format!("    ({}, {}),\n", name, data));
+                counter += 1;
+            }
         }
     }
 
-    format!("pub static APP_PACKAGES: [(&'static str, &'static str); {}] = [\n{}];", counter, packages)
+    format!("pub static APP_PACKAGES: [(&str, &str); {}] = [\n{}];", counter, packages)
 }
 
 fn get_current_date() -> String {
@@ -76,19 +78,19 @@ fn main() {
         let iterator = parse(execute(executable, &["-vV"]));
         for (k, v) in iterator {
             let key = k.to_uppercase().replace("-", "_").replace(" ", "_");
-            let fmt_str = format!("pub static {}_{}: &'static str = \"{}\";\n", prefix, key, v);
+            let fmt_str = format!("pub static {}_{}: &str = \"{}\";\n", prefix, key, v);
             source_code.push_str(&fmt_str);
         }
     }
 
     // add project info
     let git_hash = include_str!(".git/ORIG_HEAD").trim();
-    let git_branch = include_str!(".git/HEAD").rsplitn(2, "/").nth(0).unwrap_or("-").trim();
+    let git_branch = include_str!(".git/HEAD").rsplitn(2, '/').next().unwrap_or("-").trim();
     let project_info = format!(
         "// project info\n\
-        pub static GIT_PROJECT_BRANCH: &'static str = \"{}\";\n\
-        pub static GIT_PROJECT_HASH: &'static str = \"{}\";\n\
-        pub static PROJECT_BUILD_DATE: &'static str = \"{}\"; // UTC+0\n\
+        pub static GIT_PROJECT_BRANCH: &str = \"{}\";\n\
+        pub static GIT_PROJECT_HASH: &str = \"{}\";\n\
+        pub static PROJECT_BUILD_DATE: &str = \"{}\"; // UTC+0\n\
         // packages\n",
         git_branch,
         git_hash,

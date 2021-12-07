@@ -39,7 +39,7 @@ fn v_as_color(pixel_fmt: &PixelFormat, config: &Ini, section: &str, param: &str,
         }
         None => default,
     };
-    Color::from_u32(&pixel_fmt, color)
+    Color::from_u32(pixel_fmt, color)
 }
 
 fn main() {
@@ -56,8 +56,8 @@ fn main() {
     };
     let magnetization = config.get("game", "magnetization").unwrap_or(DEFAULT_MAGNET_PARAM);
     let alpha_value = config.get("game", "alpha").unwrap_or(DEFAULT_ALPHA_PARAM);
-    let cfg_user_name = config.get("game", "username").unwrap_or(DEFAULT_USER_NAME.to_string());
-    let ask_username = config.get("game", "ask_username").unwrap_or(cfg_user_name == DEFAULT_USER_NAME);
+    let cfg_user_name = config.get("game", "username").unwrap_or_else(|| DEFAULT_USER_NAME.to_string());
+    let ask_username = config.get("game", "ask_username").unwrap_or_else(|| cfg_user_name == DEFAULT_USER_NAME);
     let mut score_table = score::ScoreTable::from_config(&config);
 
     // objects positions
@@ -72,12 +72,12 @@ fn main() {
 
     // SDL2
     let sdl_context = sdl2::init().expect(INIT_SDL_ERROR);
-    let video_subsystem = sdl_context.video().expect(&subsystem_error!(create; "video"));
+    let video_subsystem = sdl_context.video().unwrap_or_else(|_| subsystem_panic!(create; "video"));
     // init audio subsystem
-    let _audio_subsystem = sdl_context.audio().expect(&subsystem_error!(create; "audio"));
+    let _audio_subsystem = sdl_context.audio().unwrap_or_else(|_| subsystem_panic!(create; "audio"));
     sdl2::mixer::open_audio(44100, AUDIO_S16LSB, DEFAULT_CHANNELS, 1024)
-        .expect(&subsystem_error!(open; "audio device"));
-    let _mixer_context = sdl2::mixer::init(InitFlag::all()).expect(&subsystem_error!(create; "mixer"));
+        .unwrap_or_else(|_| subsystem_panic!(open; "audio device"));
+    let _mixer_context = sdl2::mixer::init(InitFlag::all()).unwrap_or_else(|_| subsystem_panic!(create; "mixer"));
     sdl2::mixer::allocate_channels(1);
     let mut audio = sound::SoundSystem::new();
 
@@ -276,7 +276,7 @@ fn main() {
                 let name = if name.chars().count() > MAX_NAME_SIZE {
                     format!("{}...", &name[..MAX_NAME_SIZE - 3])
                 } else {
-                    format!("{}", name)
+                    name.to_string()
                 };
                 if *last {
                     curr_score = Some(index);
@@ -325,7 +325,7 @@ fn main() {
             let size_2 = coord!(TILE_SIZE_2 as i16);
             let sep = coord!(TILE_SEP_1 as i16);
             figure_pos = if field.is_point_in(&mouse_pos) && magnetization {
-                field.get_point_in(&mouse_pos, &figure)
+                field.get_point_in(&mouse_pos, figure)
             } else {
                 mouse_pos - size_2
             };
@@ -384,7 +384,7 @@ fn main() {
                         Some(ref figure) => {
                             audio.play(consts::CLACK);
                             let sel_pos = if magnetization { figure_pos } else { mouse_pos };
-                            if !field.set_figure(&sel_pos, &figure) {
+                            if !field.set_figure(&sel_pos, figure) {
                                 basket.ret(figure.clone());
                             } else {
                                 score += figure.blocks() * BLOCK_COST_MULTIPLIER;
@@ -446,5 +446,5 @@ fn main() {
     }
 
     // update highscore results
-    msg!(score_table.to_config(GAMESCORE_COUNT, config).to_file(CONFIG_FILE); canvas.window(), GT);
+    msg!(score_table.update_config(GAMESCORE_COUNT, config).to_file(CONFIG_FILE); canvas.window(), GT);
 }

@@ -11,10 +11,7 @@ pub struct Coord {
 macro_rules! figure {
     ($i:expr, $c:expr; $( ($x:expr, $y:expr) ),*) => {
         {
-            let mut slice = Vec::new();
-            $(
-                slice.push(coord!($x, $y));
-            )*
+            let slice = vec![$( coord!($x, $y), )* ];
             game::Figure::from_slice($i, &slice, $c)
         }
     };
@@ -67,7 +64,7 @@ macro_rules! msg {
 
 // convert Duration to HH:MM:SS
 pub fn as_time_str(duration: &Result<Duration, SystemTimeError>) -> String {
-    let secs = duration.clone().unwrap_or(Duration::from_secs(0)).as_secs();
+    let secs = duration.clone().unwrap_or_else(|_| Duration::from_secs(0)).as_secs();
     let (hours, minutes, seconds) = (secs / (60 * 60), (secs / 60) % 60, secs % 60);
     format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
 }
