@@ -79,7 +79,6 @@ fn main() {
         .unwrap_or_else(|_| subsystem_panic!(open; "audio device"));
     let _mixer_context = sdl2::mixer::init(InitFlag::all()).unwrap_or_else(|_| subsystem_panic!(create; "mixer"));
     sdl2::mixer::allocate_channels(1);
-    let mut audio = sound::SoundSystem::new();
 
     let window = video_subsystem.window(GT, W_WIDTH, W_HEIGHT).position_centered().build().expect(INIT_WINDOW_ERROR);
     let mut canvas = window.into_canvas().build().expect(GET_CANVAS_ERROR);
@@ -95,10 +94,16 @@ fn main() {
     let pixel_fmt: PixelFormat = msg!(PixelFormat::try_from(PixelFormatEnum::RGB24); canvas.window(), GT);
 
     // configure audio system
-    audio.set_status(config.get("audio", "enabled").unwrap_or(DEFAULT_EFFECTS_ENABLE));
-    audio.set_volume(config.get("audio", "volume").unwrap_or(DEFAULT_AUDIO_VOLUME));
-    // and load all audio tracks
-    audio.batch_load(EFFECTS_TRACKS);
+    let mut audio = sound::SoundSystem::new();
+    audio.set_effect_status(config.get("audio", "enable_effect").unwrap_or(DEFAULT_EFFECT_ENABLE));
+    audio.set_music_status(config.get("audio", "enable_music").unwrap_or(DEFAULT_MUSIC_ENABLE));
+    audio.set_effect_volume(config.get("audio", "volume_effect").unwrap_or(DEFAULT_EFFECT_VOLUME));
+    audio.set_music_volume(config.get("audio", "volume_music").unwrap_or(DEFAULT_MUSIC_VOLUME));
+    // and load all audio
+    audio.batch_load_effect(EFFECT_TRACKS);
+    audio.load_music(MUSIC_BG_ID, BG_MUSIC_FILE);
+    // start playing bg music
+    audio.play_music(MUSIC_BG_ID);
 
     // game palette
     let palette = [
@@ -382,7 +387,7 @@ fn main() {
                     // figure set | return
                     current_figure = match current_figure {
                         Some(ref figure) => {
-                            audio.play(consts::CLACK);
+                            audio.play_effect(EFFECT_CLACK_ID);
                             let sel_pos = if magnetization { figure_pos } else { mouse_pos };
                             if !field.set_figure(&sel_pos, figure) {
                                 basket.ret(figure.clone());
@@ -394,7 +399,7 @@ fn main() {
                         None => {
                             let item = basket.get(coord!(x as i16, y as i16));
                             if item.is_some() {
-                                audio.play(consts::CLICK);
+                                audio.play_effect(EFFECT_CLICK_ID);
                             }
                             item
                         }
