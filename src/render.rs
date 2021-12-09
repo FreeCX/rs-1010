@@ -1,35 +1,43 @@
 use crate::extra::Coord;
 use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
-use sdl2::render::Canvas;
-use sdl2::render::TextureQuery;
+use sdl2::render::{Canvas, RenderTarget, TextureQuery};
 use sdl2::ttf::Font;
 use sdl2::video::Window;
 
 // very simple polygon drawing
-pub fn unfair_polygon(canvas: &mut Canvas<Window>, v: &mut [(i16, i16)], c: Color) -> Result<(), String> {
+pub fn unfair_polygon<T>(canvas: &mut Canvas<T>, v: &mut [(i16, i16)], c: Color) -> Result<(), String>
+where
+    T: RenderTarget,
+{
     v.sort_by(|a, b| a.1.cmp(&b.1));
     let (min_y, max_y) = (v[0].1, v[v.len() - 1].1);
     let (mut min_x, mut max_x) = (0, 0);
-    let mut points = Vec::new();
+    let mut lines = Vec::with_capacity(2 * (max_y - min_y + 1) as usize);
     for y in min_y..=max_y {
-        let c: Vec<_> = v.iter().filter(|x| x.1 == y).collect();
-        if !c.is_empty() {
-            min_x = c.iter().fold(c[0].0, |m, x| m.min(x.0));
-            max_x = c.iter().fold(c[0].0, |m, x| m.max(x.0));
+        let mut iterator = v.iter().filter(|x| x.1 == y);
+        if let Some(start) = iterator.next() {
+            min_x = start.0;
+            max_x = start.0;
+            for item in iterator {
+                min_x = min_x.min(item.0);
+                max_x = max_x.max(item.0);
+            }
         }
-        for x in min_x..=max_x {
-            points.push(Point::new(x as i32, y as i32));
-        }
+        lines.push(Point::new(min_x as i32, y as i32));
+        lines.push(Point::new(max_x as i32, y as i32));
     }
     let last_color = canvas.draw_color();
     canvas.set_draw_color(c);
-    canvas.draw_points(points.as_slice())?;
+    canvas.draw_lines(lines.as_slice())?;
     canvas.set_draw_color(last_color);
     Ok(())
 }
 
-pub fn fill_rounded_rect(canvas: &mut Canvas<Window>, c1: Coord, c2: Coord, r: i16, c: Color) -> Result<(), String> {
+pub fn fill_rounded_rect<T>(canvas: &mut Canvas<T>, c1: Coord, c2: Coord, r: i16, c: Color) -> Result<(), String>
+where
+    T: RenderTarget,
+{
     // prepare points for polygon
     let mut tmp: Vec<(i16, i16)> = Vec::new();
     let (mut x, mut y) = (r - 1, 0);
