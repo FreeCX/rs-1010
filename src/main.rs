@@ -78,7 +78,7 @@ fn main() {
     sdl2::mixer::open_audio(44100, AUDIO_S16LSB, DEFAULT_CHANNELS, 1024)
         .unwrap_or_else(|_| subsystem_panic!(open; "audio device"));
     let _mixer_context = sdl2::mixer::init(InitFlag::all()).unwrap_or_else(|_| subsystem_panic!(create; "mixer"));
-    sdl2::mixer::allocate_channels(1);
+    sdl2::mixer::allocate_channels(4);
 
     let window = video_subsystem.window(GT, W_WIDTH, W_HEIGHT).position_centered().build().expect(INIT_WINDOW_ERROR);
     let mut canvas = window.into_canvas().build().expect(GET_CANVAS_ERROR);
@@ -95,15 +95,15 @@ fn main() {
 
     // configure audio system
     let mut audio = sound::SoundSystem::new();
-    audio.set_effect_status(config.get("audio", "enable_effect").unwrap_or(DEFAULT_EFFECT_ENABLE));
+    audio.set_sound_status(config.get("audio", "enable_sound").unwrap_or(DEFAULT_SOUND_ENABLE));
     audio.set_music_status(config.get("audio", "enable_music").unwrap_or(DEFAULT_MUSIC_ENABLE));
-    audio.set_effect_volume(config.get("audio", "volume_effect").unwrap_or(DEFAULT_EFFECT_VOLUME));
+    audio.set_sound_volume(config.get("audio", "volume_sound").unwrap_or(DEFAULT_SOUND_VOLUME));
     audio.set_music_volume(config.get("audio", "volume_music").unwrap_or(DEFAULT_MUSIC_VOLUME));
     // and load all audio
-    audio.batch_load_effect(EFFECT_TRACKS);
-    audio.load_music(MUSIC_BG_ID, BG_MUSIC_FILE);
+    audio.batch_load_sound(SOUND_TRACKS);
+    audio.batch_load_music(MUSIC_TRACKS);
     // start playing bg music
-    audio.play_music(MUSIC_BG_ID);
+    audio.play_music(MUSIC_BG_ID, sound::MusicLoop::Repeat);
 
     // game palette
     let palette = [
@@ -379,6 +379,8 @@ fn main() {
                         basket.rnd_fill(figures);
                         score = 0;
                         game_start = SystemTime::now();
+                        // start playing bg music
+                        audio.play_music(MUSIC_BG_ID, sound::MusicLoop::Repeat);
                         continue;
                     }
                     if gameover_flag {
@@ -387,7 +389,7 @@ fn main() {
                     // figure set | return
                     current_figure = match current_figure {
                         Some(ref figure) => {
-                            audio.play_effect(EFFECT_CLACK_ID);
+                            audio.play_sound(SOUND_CLACK_ID);
                             let sel_pos = if magnetization { figure_pos } else { mouse_pos };
                             if !field.set_figure(&sel_pos, figure) {
                                 basket.ret(figure.clone());
@@ -399,7 +401,7 @@ fn main() {
                         None => {
                             let item = basket.get(coord!(x as i16, y as i16));
                             if item.is_some() {
-                                audio.play_effect(EFFECT_CLICK_ID);
+                                audio.play_sound(SOUND_CLICK_ID);
                             }
                             item
                         }
@@ -411,17 +413,23 @@ fn main() {
 
         // calculate score
         if let Some(lines) = field.next_state() {
+            audio.play_sound(SOUND_CLEAR_ID);
             score += (lines.x + lines.y + lines.x * lines.y) * LINE_MULTIPLIER;
         }
+
         // refill baskets
         if current_figure == None && !gameover_flag {
             basket.check_and_refill(figures);
         }
+
         // update highscore
         highscore = highscore.max(score);
+
         // check gameover
         if !field.can_set(basket.figures()) && current_figure == None {
             if !gameover_flag && !name_input_flag {
+                audio.stop_music();
+                audio.play_music(MUSIC_GAMEOVER_ID, sound::MusicLoop::Once);
                 name_input_flag = true;
             }
             // autoset username to score table
