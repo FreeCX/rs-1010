@@ -29,6 +29,7 @@ pub struct Field {
     tile_size: Coord,
     tile_sep: Coord,
     pos: Coord,
+    radius: i16,
     field: HashSet<Coord>,
     colors: HashMap<Coord, Color>,
     state: State,
@@ -69,17 +70,18 @@ impl Lines {
 }
 
 impl Field {
-    pub fn init_square(pole_size: u8, tile_size: u8, tile_sep: u8, pos: Coord) -> Field {
+    pub fn init_square(pole_size: u8, tile_size: u8, tile_sep: u8, radius: i16, pos: Coord) -> Field {
         Field {
             field_size: coord!(pole_size as i16),
             tile_size: coord!(tile_size as i16),
             tile_sep: coord!(tile_sep as i16),
-            pos,
             field: HashSet::new(),
             colors: HashMap::new(),
             state: State::Wait,
             clear: Blocks::new(),
             lines: Lines::empty(),
+            radius,
+            pos,
         }
     }
 
@@ -249,7 +251,7 @@ impl Field {
         }
     }
 
-    pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color, radius: i16) -> Result<(), String> {
+    pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color) -> Result<(), String> {
         for y in 0..self.field_size.y {
             for x in 0..self.field_size.x {
                 let pos = coord!(x, y);
@@ -276,9 +278,9 @@ impl Field {
 
                 // background for animated blocks
                 if !shift.is_zero() {
-                    fill_rounded_rect(canvas, p1, p2, radius, empty_field_color)?;
+                    fill_rounded_rect(canvas, p1, p2, self.radius, empty_field_color)?;
                 }
-                fill_rounded_rect(canvas, p1 + shift, p2 - shift, radius, color)?;
+                fill_rounded_rect(canvas, p1 + shift, p2 - shift, self.radius, color)?;
             }
         }
         Ok(())

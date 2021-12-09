@@ -231,7 +231,7 @@ fn main() {
 
     // game objects
     let mut current_figure: Option<game::Figure> = None;
-    let mut field = game::Field::init_square(FIELD_SIZE, TILE_SIZE_1, TILE_SEP_1, field_pos);
+    let mut field = game::Field::init_square(FIELD_SIZE, TILE_SIZE_1, TILE_SEP_1, ROUND_RADIUS, field_pos);
     let mut basket =
         game::BasketSystem::new(BASKET_COUNT, BASKET_SIZE, TILE_SIZE_2, TILE_SEP_2, basket_pos, basket_shift);
 
@@ -267,7 +267,7 @@ fn main() {
                  canvas.window(), GT);
         msg!(render::font(&mut canvas, &font, timer_pos, palette[10], &extra::as_time_str(&game_stop));
                  canvas.window(), GT);
-        msg!(field.render(&mut canvas, palette[9], ROUND_RADIUS); canvas.window(), GT);
+        msg!(field.render(&mut canvas, palette[9]); canvas.window(), GT);
         msg!(basket.render(&mut canvas, palette[9], ROUND_RADIUS); canvas.window(), GT);
 
         if gameover_flag && !name_input_flag {
@@ -299,7 +299,7 @@ fn main() {
             let p4 = p2 - BORDER;
             msg!(render::fill_rounded_rect(&mut canvas, p1, p2, BIG_ROUND_RADIUS, palette[12]); canvas.window(), GT);
             msg!(render::fill_rounded_rect(&mut canvas, p3, p4, BIG_ROUND_RADIUS, palette[8]); canvas.window(), GT);
-            msg!(render::font(&mut canvas, &font_big, fp1, palette[10], GAME_OVER); canvas.window(), GT);
+            msg!(render::font(&mut canvas, &font_big, fp1 - coord!(0, 5), palette[10], GAME_OVER); canvas.window(), GT);
             for (index, text) in scores.iter().enumerate() {
                 let fp2 = fp1 + coord!(0, fsy as i16 + index as i16 * (ss.y / scores.len() as i16)) - coord!(0, BORDER);
                 let fcolor = if Some(index) == curr_score { palette[11] } else { palette[10] };
@@ -375,10 +375,9 @@ fn main() {
                 Event::MouseButtonDown { mouse_btn: MouseButton::Left, x, y, .. } => {
                     if gameover_flag && !name_input_flag {
                         // restart game
-                        gameover_flag = false;
-                        basket.rnd_fill(figures);
-                        score = 0;
                         game_start = SystemTime::now();
+                        gameover_flag = false;
+                        score = 0;
                         // start playing bg music
                         audio.play_music(MUSIC_BG_ID, sound::MusicLoop::Repeat);
                         continue;
@@ -436,6 +435,8 @@ fn main() {
             if !ask_username && name_input_flag {
                 score_table.push(cfg_user_name.clone(), score, extra::as_time_str(&game_stop));
                 name_input_flag = false;
+                field.clear();
+                basket.clear();
             }
             gameover_flag = true;
         }
