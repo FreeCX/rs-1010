@@ -38,8 +38,10 @@ pub fn fill_rounded_rect<T>(canvas: &mut Canvas<T>, c1: Coord, c2: Coord, r: i16
 where
     T: RenderTarget,
 {
+    // because 8 * r memory is too big
+    let approx_memory = (5.7 * r as f32).round() as usize + 7;
     // prepare points for polygon
-    let mut tmp: Vec<(i16, i16)> = Vec::new();
+    let mut tmp: Vec<(i16, i16)> = Vec::with_capacity(approx_memory);
     let (mut x, mut y) = (r - 1, 0);
     let (mut dx, mut dy) = (1, 1);
     let mut err = dx - (r << 1);
