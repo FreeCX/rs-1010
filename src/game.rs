@@ -1,9 +1,10 @@
-use sdl2::pixels::Color;
-use sdl2::render::Canvas;
-use sdl2::video::Window;
 use std::collections::{HashMap, HashSet};
 use std::mem;
 use std::time::SystemTime;
+
+use sdl2::pixels::Color;
+use sdl2::render::Canvas;
+use sdl2::video::Window;
 
 use crate::consts::{GET_COLOR_ERROR, SQR_SIZE};
 use crate::extra::{Coord, RectData};
@@ -259,7 +260,7 @@ impl Field {
         }
     }
 
-    pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color) -> Result<(), String> {
+    pub fn render(&self, surface: &mut Canvas<Window>, empty_field_color: Color) -> Result<(), String> {
         for y in 0..self.field_size.y {
             for x in 0..self.field_size.x {
                 let pos = coord!(x, y);
@@ -271,7 +272,7 @@ impl Field {
 
                 let position = pos * (self.tile_size + self.tile_sep) + self.pos;
                 // block shift size
-                let shift = match &self.state {
+                let shift_pos = match &self.state {
                     State::Clear(p) => {
                         if self.clear.contains(&coord!(x, y)) {
                             coord!(SQR_SIZE as i16 - *p as i16, SQR_SIZE as i16 - *p as i16)
@@ -283,14 +284,14 @@ impl Field {
                 };
 
                 // background block
-                if !shift.is_zero() {
+                if !shift_pos.is_zero() {
                     let data = self.textures[&self.tile_size.x].shift(position);
-                    fill_rounded_rect_from(canvas, &data, empty_field_color)?;
+                    fill_rounded_rect_from(surface, &data, empty_field_color)?;
                 }
                 // animated block
-                let tile = self.tile_size.x - 2 * shift.x;
-                let data = self.textures[&tile].shift(position + shift);
-                fill_rounded_rect_from(canvas, &data, color)?;
+                let tile = self.tile_size.x - 2 * shift_pos.x;
+                let data = self.textures[&tile].shift(position + shift_pos);
+                fill_rounded_rect_from(surface, &data, color)?;
             }
         }
         Ok(())
@@ -328,13 +329,13 @@ impl Figure {
     }
 
     pub fn render(
-        &self, canvas: &mut Canvas<Window>, texture: &RectData, pos: Coord, size: Coord, sep: Coord, alpha: u8,
+        &self, surface: &mut Canvas<Window>, texture: &RectData, pos: Coord, size: Coord, sep: Coord, alpha: u8,
     ) -> Result<(), String> {
         let color = Color::RGBA(self.color.r, self.color.g, self.color.b, alpha);
         for c in &self.blocks {
             let position = *c * (size + sep) + pos;
             let tex = texture.shift(position);
-            fill_rounded_rect_from(canvas, &tex, color)?;
+            fill_rounded_rect_from(surface, &tex, color)?;
         }
         Ok(())
     }
@@ -378,7 +379,7 @@ impl Basket {
     }
 
     pub fn render(
-        &self, canvas: &mut Canvas<Window>, texture: &RectData, empty_field_color: Color,
+        &self, surface: &mut Canvas<Window>, texture: &RectData, empty_field_color: Color,
     ) -> Result<(), String> {
         let wsize = self.tile_size + self.tile_sep;
         let color = empty_field_color;
@@ -386,7 +387,7 @@ impl Basket {
             for x in 0..self.field_size.x {
                 let position = coord!(x, y) * wsize + self.pos;
                 let tex = texture.shift(position);
-                fill_rounded_rect_from(canvas, &tex, color)?;
+                fill_rounded_rect_from(surface, &tex, color)?;
             }
         }
         if let Some(figure) = &self.figure {
@@ -395,7 +396,7 @@ impl Basket {
             for pos in &figure.blocks {
                 let position = (*pos + cen) * wsize + self.pos;
                 let tex = texture.shift(position);
-                fill_rounded_rect_from(canvas, &tex, color)?;
+                fill_rounded_rect_from(surface, &tex, color)?;
             }
         }
         Ok(())
@@ -483,9 +484,9 @@ impl BasketSystem {
         self.basket
     }
 
-    pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color) -> Result<(), String> {
+    pub fn render(&self, surface: &mut Canvas<Window>, empty_field_color: Color) -> Result<(), String> {
         for item in &self.basket {
-            item.render(canvas, &self.texture, empty_field_color)?;
+            item.render(surface, &self.texture, empty_field_color)?;
         }
         Ok(())
     }

@@ -1,6 +1,7 @@
-use sdl2::rect::{Point, Rect};
 use std::ops::{Add, Mul, Shr, Sub};
 use std::time::{Duration, SystemTimeError};
+
+use sdl2::rect::Rect;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Coord {
@@ -15,10 +16,7 @@ pub enum RectPart {
 }
 
 #[derive(Clone)]
-pub struct RectData {
-    pub lines: Vec<Point>,
-    pub rect: Rect,
-}
+pub struct RectData(Vec<Rect>);
 
 #[macro_export]
 macro_rules! figure {
@@ -187,22 +185,23 @@ where
 }
 
 impl RectData {
-    pub fn new(lines: Vec<Point>, rect: Rect) -> Self {
-        RectData { lines, rect }
+    pub fn new(lines: Vec<Rect>) -> Self {
+        RectData(lines)
     }
 
     pub fn shift(&self, size: Coord) -> Self {
         let mut shifted = self.clone();
 
         // shift lines
-        for point in shifted.lines.iter_mut() {
+        for point in shifted.0.iter_mut() {
             point.x += size.x as i32;
             point.y += size.y as i32;
         }
-        // shift rect
-        shifted.rect.x += size.x as i32;
-        shifted.rect.y += size.y as i32;
 
         shifted
+    }
+
+    pub fn data(&self) -> &'_ Vec<Rect> {
+        &self.0
     }
 }

@@ -71,19 +71,19 @@ pub const BORDER: i16 = 6;
 pub const SQR_SIZE: u8 = 12;
 
 // default game colors
-pub const GAME_BACKGROUND_COLOR: u32 = (100 << 16) + (100 << 8) + 100;
-pub const FIELD_BACKGROUND_COLOR: u32 = (170 << 16) + (170 << 8) + 170;
-pub const FONT_ACOLOR: u32 = (200 << 16) + (200 << 8) + 200;
-pub const FONT_BCOLOR: u32 = (255 << 16) + (255 << 8) + 255;
-pub const BORDER_COLOR: u32 = (210 << 16) + (210 << 8) + 210;
-pub const FIG_COLOR_01: u32 = (230 << 16) + (100 << 8) + 100;
-pub const FIG_COLOR_02: u32 = (230 << 16) + (210 << 8) + 100;
-pub const FIG_COLOR_03: u32 = (100 << 16) + (230 << 8) + 100;
-pub const FIG_COLOR_04: u32 = (230 << 16) + (100 << 8) + 200;
-pub const FIG_COLOR_05: u32 = (100 << 16) + (230 << 8) + 200;
-pub const FIG_COLOR_06: u32 = (100 << 16) + (200 << 8) + 230;
-pub const FIG_COLOR_07: u32 = (100 << 16) + (100 << 8) + 230;
-pub const FIG_COLOR_08: u32 = (210 << 16) + (100 << 8) + 230;
+pub const GAME_BACKGROUND_COLOR: (u8, u8, u8) = (100, 100, 100);
+pub const FIELD_BACKGROUND_COLOR: (u8, u8, u8) = (170, 170, 170);
+pub const FONT_ACOLOR: (u8, u8, u8) = (200, 200, 200);
+pub const FONT_BCOLOR: (u8, u8, u8) = (255, 255, 255);
+pub const BORDER_COLOR: (u8, u8, u8) = (210, 210, 210);
+pub const FIG_COLOR_01: (u8, u8, u8) = (230, 100, 100);
+pub const FIG_COLOR_02: (u8, u8, u8) = (230, 210, 100);
+pub const FIG_COLOR_03: (u8, u8, u8) = (100, 230, 100);
+pub const FIG_COLOR_04: (u8, u8, u8) = (230, 100, 200);
+pub const FIG_COLOR_05: (u8, u8, u8) = (100, 230, 200);
+pub const FIG_COLOR_06: (u8, u8, u8) = (100, 200, 230);
+pub const FIG_COLOR_07: (u8, u8, u8) = (100, 100, 230);
+pub const FIG_COLOR_08: (u8, u8, u8) = (210, 100, 230);
 
 // id for audio effects
 pub const SOUND_CLICK_ID: u8 = 0;

@@ -1,9 +1,13 @@
 use crate::extra::{Coord, RectData, RectPart};
+
 use sdl2::pixels::Color;
-use sdl2::rect::{Point, Rect};
+use sdl2::rect::Rect;
 use sdl2::render::{Canvas, TextureQuery};
+use sdl2::surface::Surface;
 use sdl2::ttf::Font;
 use sdl2::video::Window;
+
+type SDL2Result = Result<(), String>;
 
 pub fn build_rounded_rect(c1: Coord, c2: Coord, r: i16) -> RectData {
     // because 8 * r memory is too big
@@ -40,13 +44,11 @@ pub fn build_rounded_rect(c1: Coord, c2: Coord, r: i16) -> RectData {
     // min and max of x and y
     let (min_y, max_y) = (v[0].1, v[v.len() - 1].1);
     let (mut min_x, mut max_x) = (0, 0);
-    // allocated buffer for SDL2 lines:
-    // 2 (points) * 2 (top and bottom part) * r
-    let mut lines = Vec::with_capacity(2 * 2 * r as usize);
-    // rectangle in center of polygon
-    let mut rect = Rect::new(0, 0, 0, 0);
+    // allocated buffer for points
+    let mut rects = Vec::new();
+    // rectangle in center of rounded rect
+    let mut rect = (coord!(), coord!());
     let mut part = RectPart::Top;
-    let mut is_odd = true;
 
     for y in min_y..=max_y {
         let mut iterator = v.iter().filter(|x| x.1 == y);
@@ -57,58 +59,56 @@ pub fn build_rounded_rect(c1: Coord, c2: Coord, r: i16) -> RectData {
                 min_x = min_x.min(item.0);
                 max_x = max_x.max(item.0);
             }
-            if is_odd {
-                lines.push(Point::new(min_x as i32, y as i32));
-                lines.push(Point::new(max_x as i32, y as i32));
-            } else {
-                lines.push(Point::new(max_x as i32, y as i32));
-                lines.push(Point::new(min_x as i32, y as i32));
-            }
-            is_odd = !is_odd;
+
+            rects.push(Rect::new(min_x as i32, y as i32, (max_x - min_x) as u32, 0));
 
             // find bottom part of rectangle
             if part == RectPart::Bottom {
-                rect.set_height((y - rect.y as i16) as u32);
+                rect.1.y = y - rect.0.y;
                 part = RectPart::Top;
             }
         } else if part == RectPart::Top {
             // top part founded!
-            rect.x = min_x as i32;
-            rect.y = y as i32;
-            rect.set_width((max_x - min_x) as u32 + 1);
+            rect.0.x = min_x;
+            rect.0.y = y;
+            rect.1.x = max_x - min_x;
             part = RectPart::Bottom;
         }
     }
 
-    RectData::new(lines, rect)
+    rects.push(Rect::new(rect.0.x as i32, rect.0.y as i32, rect.1.x as u32, rect.1.y as u32));
+    RectData::new(rects)
 }
 
-pub fn fill_rounded_rect_new(
-    canvas: &mut Canvas<Window>, c1: Coord, c2: Coord, r: i16, c: Color,
-) -> Result<(), String> {
+pub fn fill_rounded_rect_new(canvas: &mut Canvas<Window>, c1: Coord, c2: Coord, r: i16, c: Color) -> SDL2Result {
     // --- build rounded rect ---
     let data = build_rounded_rect(c1, c2, r);
-
     // --- draw ---
     fill_rounded_rect_from(canvas, &data, c)
 }
 
-pub fn fill_rounded_rect_from(canvas: &mut Canvas<Window>, data: &RectData, c: Color) -> Result<(), String> {
+pub fn fill_rounded_rect_from(canvas: &mut Canvas<Window>, data: &RectData, c: Color) -> SDL2Result {
     let last_color = canvas.draw_color();
     canvas.set_draw_color(c);
-    canvas.draw_lines(data.lines.as_slice())?;
-    canvas.fill_rect(data.rect)?;
+    canvas.fill_rects(data.data())?;
     canvas.set_draw_color(last_color);
-
     Ok(())
 }
 
-pub fn font(canvas: &mut Canvas<Window>, font: &Font, pos: Coord, c: Color, text: &str) -> Result<(), String> {
+pub fn font(surface: &mut Surface, font: &Font, pos: Coord, fg: Color, bg: Color, text: &str) -> SDL2Result {
+    let font_size = font.size_of(text).map_err(|e| e.to_string())?;
+    let font_surface = font.render(text).blended(fg).map_err(|e| e.to_string())?;
+    let dst_rect = Rect::new(pos.x as i32, pos.y as i32, font_size.0, font_size.1);
+    surface.fill_rect(dst_rect, bg)?;
+    font_surface.blit(None, surface, dst_rect)?;
+    Ok(())
+}
+
+pub fn surface_copy(canvas: &mut Canvas<Window>, surface: &Surface) -> SDL2Result {
     let texture_creator = canvas.texture_creator();
-    let surface = font.render(text).blended(c).map_err(|e| e.to_string())?;
-    let texture = texture_creator.create_texture_from_surface(&surface).map_err(|e| e.to_string())?;
+    let texture = texture_creator.create_texture_from_surface(surface).map_err(|e| e.to_string())?;
     let TextureQuery { width, height, .. } = texture.query();
-    let target = Rect::new(pos.x as i32, pos.y as i32, width, height);
-    canvas.copy(&texture, None, Some(target))?;
+    let target = Rect::new(0, 0, width, height);
+    canvas.copy(&texture, None, target)?;
     Ok(())
 }

@@ -3,7 +3,6 @@ extern crate backtrace;
 extern crate sdl2;
 extern crate tini;
 
-use std::convert::TryFrom;
 use std::panic;
 use std::time::SystemTime;
 
@@ -11,7 +10,11 @@ use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::mixer::{InitFlag, AUDIO_S16LSB, DEFAULT_CHANNELS};
 use sdl2::mouse::MouseButton;
-use sdl2::pixels::{Color, PixelFormat, PixelFormatEnum};
+use sdl2::pixels::{Color, PixelFormatEnum};
+use sdl2::rect::Rect;
+use sdl2::render::BlendMode;
+use sdl2::surface::Surface;
+
 use tini::Ini;
 
 use crate::consts::*;
@@ -29,18 +32,18 @@ mod save;
 mod score;
 mod sound;
 
-fn v_as_color(pixel_fmt: &PixelFormat, config: &Ini, section: &str, param: &str, default: u32) -> Color {
+fn v_as_color(config: &Ini, section: &str, param: &str, default: (u8, u8, u8)) -> Color {
     let color = match config.get_vec::<u8>(section, param) {
         Some(value) => {
             match value[..] {
                 // suport only RGB24
-                [r, g, b] => ((r as u32) << 16) + ((g as u32) << 8) + b as u32,
+                [r, g, b] => (r, g, b),
                 _ => default,
             }
         }
         None => default,
     };
-    Color::from_u32(pixel_fmt, color)
+    Color::RGBA(color.0, color.1, color.2, 255)
 }
 
 fn main() {
@@ -92,7 +95,7 @@ fn main() {
     let font_min = msg!(ttf_context.load_font(FONT_FILE, FONT_MIN_SIZE); canvas.window(), GT);
 
     // game pixel format
-    let pixel_fmt: PixelFormat = msg!(PixelFormat::try_from(PixelFormatEnum::RGB24); canvas.window(), GT);
+    let pixel_fmt = PixelFormatEnum::RGBA32;
 
     // configure audio system
     let mut audio = sound::SoundSystem::new();
@@ -109,31 +112,31 @@ fn main() {
     // game palette
     let palette = [
         // 00
-        v_as_color(&pixel_fmt, &config, "color", "fig1", FIG_COLOR_01),
+        v_as_color(&config, "color", "fig1", FIG_COLOR_01),
         // 01
-        v_as_color(&pixel_fmt, &config, "color", "fig2", FIG_COLOR_02),
+        v_as_color(&config, "color", "fig2", FIG_COLOR_02),
         // 02
-        v_as_color(&pixel_fmt, &config, "color", "fig3", FIG_COLOR_03),
+        v_as_color(&config, "color", "fig3", FIG_COLOR_03),
         // 03
-        v_as_color(&pixel_fmt, &config, "color", "fig4", FIG_COLOR_04),
+        v_as_color(&config, "color", "fig4", FIG_COLOR_04),
         // 04
-        v_as_color(&pixel_fmt, &config, "color", "fig5", FIG_COLOR_05),
+        v_as_color(&config, "color", "fig5", FIG_COLOR_05),
         // 05
-        v_as_color(&pixel_fmt, &config, "color", "fig6", FIG_COLOR_06),
+        v_as_color(&config, "color", "fig6", FIG_COLOR_06),
         // 06
-        v_as_color(&pixel_fmt, &config, "color", "fig7", FIG_COLOR_07),
+        v_as_color(&config, "color", "fig7", FIG_COLOR_07),
         // 07
-        v_as_color(&pixel_fmt, &config, "color", "fig8", FIG_COLOR_08),
+        v_as_color(&config, "color", "fig8", FIG_COLOR_08),
         // 08: bg_color
-        v_as_color(&pixel_fmt, &config, "color", "game_background", GAME_BACKGROUND_COLOR),
+        v_as_color(&config, "color", "game_background", GAME_BACKGROUND_COLOR),
         // 09: field_bg_color
-        v_as_color(&pixel_fmt, &config, "color", "field_background", FIELD_BACKGROUND_COLOR),
+        v_as_color(&config, "color", "field_background", FIELD_BACKGROUND_COLOR),
         // 10: font_color
-        v_as_color(&pixel_fmt, &config, "color", "font", FONT_ACOLOR),
+        v_as_color(&config, "color", "font", FONT_ACOLOR),
         // 11: light_font_color
-        v_as_color(&pixel_fmt, &config, "color", "light", FONT_BCOLOR),
+        v_as_color(&config, "color", "light", FONT_BCOLOR),
         // 12: border_color
-        v_as_color(&pixel_fmt, &config, "color", "border", BORDER_COLOR),
+        v_as_color(&config, "color", "border", BORDER_COLOR),
     ];
 
     // available game figures
@@ -222,12 +225,12 @@ fn main() {
     let mut gameover_flag = config.get("game", "show_highscore_at_start").unwrap_or(DEFAULT_HIGHSCORE_AT_START);
     let mut user_name = String::new();
     // rendering params
-    let (fsx, fsy) = font_big.size_of(GAME_OVER).unwrap();
+    let (fsx, fsy) = msg!(font_big.size_of(GAME_OVER); canvas.window(), GT);
     let mut name_input_flag = false;
 
     // turn on alpha channel
     if config.get("game", "blend").unwrap_or(DEFAULT_BLEND) {
-        canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
+        canvas.set_blend_mode(BlendMode::Blend);
     }
 
     // game objects
@@ -252,6 +255,12 @@ fn main() {
     let inf_texture_big = build_rounded_rect(inf_pos1, inf_pos2, BIG_ROUND_RADIUS);
     let inf_texture_small = build_rounded_rect(inf_pos1 + BORDER, inf_pos2 - BORDER, BIG_ROUND_RADIUS);
 
+    // font rendering surface
+    let surface_size = Rect::new(0, 0, W_WIDTH, W_HEIGHT);
+    let mut surface = msg!(Surface::new(W_WIDTH, W_HEIGHT, pixel_fmt); canvas.window(), GT);
+    msg!(surface.set_blend_mode(BlendMode::Blend); canvas.window(), GT);
+    let surface_bg = Color::RGBA(palette[8].r, palette[8].g, palette[8].b, 0);
+
     // fill basket by random figures
     basket.rnd_fill(figures);
 
@@ -274,18 +283,20 @@ fn main() {
         game_stop = game_start.elapsed();
     }
 
-    let mut event_pump = sdl_context.event_pump().unwrap();
+    let mut event_pump = msg!(sdl_context.event_pump(); canvas.window(), GT);
     'running: loop {
-        // render cycle: text, field & basket
         canvas.set_draw_color(palette[8]);
         canvas.clear();
-        msg!(render::font(&mut canvas, &font, score_pos, palette[10], &format!("{:08}", score)); canvas.window(), GT);
-        msg!(render::font(&mut canvas, &font, highscore_pos, palette[10], &format!("{:08}", highscore));
-                 canvas.window(), GT);
-        msg!(render::font(&mut canvas, &font, timer_pos, palette[10], &extra::as_time_str(&game_stop));
-                 canvas.window(), GT);
+
+        // field and basket
         msg!(field.render(&mut canvas, palette[9]); canvas.window(), GT);
         msg!(basket.render(&mut canvas, palette[9]); canvas.window(), GT);
+
+        // score, highscore and timer
+        msg!(surface.fill_rect(surface_size, surface_bg); canvas.window(), GT);
+        msg!(render::font(&mut surface, &font, score_pos, palette[10], palette[8], &format!("{:08}", score)); canvas.window(), GT);
+        msg!(render::font(&mut surface, &font, highscore_pos, palette[10], palette[8], &format!("{:08}", highscore)); canvas.window(), GT);
+        msg!(render::font(&mut surface, &font, timer_pos, palette[10], palette[8], &extra::as_time_str(&game_stop)); canvas.window(), GT);
 
         if gameover_flag && !name_input_flag {
             // highscore table
@@ -304,7 +315,7 @@ fn main() {
                     curr_score = Some(index);
                 }
                 let score = format!("{}. {: <4$} {:08} ({})", index + 1, name, score, time, MAX_NAME_SIZE);
-                let (ssx, ssy) = font_min.size_of(&score).unwrap();
+                let (ssx, ssy) = msg!(font_min.size_of(&score); canvas.window(), GT);
                 ss.y += ssy as i16;
                 ss.x = ss.x.max(ssx as i16);
                 scores.push(score);
@@ -316,19 +327,19 @@ fn main() {
             let p4 = p2 - BORDER;
             msg!(render::fill_rounded_rect_new(&mut canvas, p1, p2, BIG_ROUND_RADIUS, palette[12]); canvas.window(), GT);
             msg!(render::fill_rounded_rect_new(&mut canvas, p3, p4, BIG_ROUND_RADIUS, palette[8]); canvas.window(), GT);
-            msg!(render::font(&mut canvas, &font_big, fp1 - coord!(0, 5), palette[10], GAME_OVER); canvas.window(), GT);
+            msg!(render::font(&mut surface, &font_big, fp1 - coord!(0, 5), palette[10], palette[8], GAME_OVER); canvas.window(), GT);
             for (index, text) in scores.iter().enumerate() {
                 let fp2 = fp1 + coord!(0, fsy as i16 + index as i16 * (ss.y / scores.len() as i16)) - coord!(0, BORDER);
                 let fcolor = if Some(index) == curr_score { palette[11] } else { palette[10] };
-                msg!(render::font(&mut canvas, &font_min, fp2, fcolor, text); canvas.window(), GT);
+                msg!(render::font(&mut surface, &font_min, fp2, fcolor, palette[8], text); canvas.window(), GT);
             }
         } else if gameover_flag && name_input_flag {
             // gameover input name
             let input_name = format!("{}{}", GAME_OVER_TEXT, user_name);
             msg!(render::fill_rounded_rect_from(&mut canvas, &inf_texture_big, palette[12]); canvas.window(), GT);
             msg!(render::fill_rounded_rect_from(&mut canvas, &inf_texture_small, palette[8]); canvas.window(), GT);
-            msg!(render::font(&mut canvas, &font_big, inf_fp1, palette[10], GAME_OVER); canvas.window(), GT);
-            msg!(render::font(&mut canvas, &font, inf_fp2, palette[10], &input_name); canvas.window(), GT);
+            msg!(render::font(&mut surface, &font_big, inf_fp1, palette[10], palette[8], GAME_OVER); canvas.window(), GT);
+            msg!(render::font(&mut surface, &font, inf_fp2, palette[10], palette[8], &input_name); canvas.window(), GT);
         } else {
             // stop game timer
             game_stop = game_start.elapsed();
@@ -348,7 +359,6 @@ fn main() {
             let block_texture = &field.textures[&(TILE_SIZE_1 as i16)];
             msg!(figure.render(&mut canvas, block_texture, figure_pos, size_1, sep, alpha_value); canvas.window(), GT);
         }
-        canvas.present();
 
         // events
         for event in event_pump.poll_iter() {
@@ -452,6 +462,10 @@ fn main() {
             }
             gameover_flag = true;
         }
+
+        // draw last frame font
+        msg!(render::surface_copy(&mut canvas, &surface); canvas.window(), GT);
+        canvas.present();
 
         // fps counter
         let current_time = timer.ticks();
