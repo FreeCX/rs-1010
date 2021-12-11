@@ -44,8 +44,8 @@ pub fn build_rounded_rect(c1: Coord, c2: Coord, r: i16) -> RectData {
     // min and max of x and y
     let (min_y, max_y) = (v[0].1, v[v.len() - 1].1);
     let (mut min_x, mut max_x) = (0, 0);
-    // allocated buffer for points
-    let mut rects = Vec::new();
+    // allocated buffer for Rect's: (top + bottom) * r + center
+    let mut rects = Vec::with_capacity(2 * r as usize + 1);
     // rectangle in center of rounded rect
     let mut rect = (coord!(), coord!());
     let mut part = RectPart::Top;
