@@ -1,3 +1,4 @@
+use sdl2::rect::{Point, Rect};
 use std::ops::{Add, Mul, Shr, Sub};
 use std::time::{Duration, SystemTimeError};
 
@@ -5,6 +6,18 @@ use std::time::{Duration, SystemTimeError};
 pub struct Coord {
     pub x: i16,
     pub y: i16,
+}
+
+#[derive(PartialEq)]
+pub enum RectPart {
+    Top,
+    Bottom,
+}
+
+#[derive(Clone)]
+pub struct RectData {
+    pub lines: Vec<Point>,
+    pub rect: Rect,
 }
 
 #[macro_export]
@@ -170,5 +183,26 @@ where
         self.x >>= v;
         self.y >>= v;
         self
+    }
+}
+
+impl RectData {
+    pub fn new(lines: Vec<Point>, rect: Rect) -> Self {
+        RectData { lines, rect }
+    }
+
+    pub fn shift(&self, size: Coord) -> Self {
+        let mut shifted = self.clone();
+
+        // shift lines
+        for point in shifted.lines.iter_mut() {
+            point.x += size.x as i32;
+            point.y += size.y as i32;
+        }
+        // shift rect
+        shifted.rect.x += size.x as i32;
+        shifted.rect.y += size.y as i32;
+
+        shifted
     }
 }

@@ -15,6 +15,7 @@ use sdl2::pixels::{Color, PixelFormat, PixelFormatEnum};
 use tini::Ini;
 
 use crate::consts::*;
+use crate::render::*;
 
 #[macro_use]
 mod extra;
@@ -232,8 +233,24 @@ fn main() {
     // game objects
     let mut current_figure: Option<game::Figure> = None;
     let mut field = game::Field::init_square(FIELD_SIZE, TILE_SIZE_1, TILE_SEP_1, ROUND_RADIUS, field_pos);
-    let mut basket =
-        game::BasketSystem::new(BASKET_COUNT, BASKET_SIZE, TILE_SIZE_2, TILE_SEP_2, basket_pos, basket_shift);
+    let mut basket = game::BasketSystem::new(
+        BASKET_COUNT,
+        BASKET_SIZE,
+        TILE_SIZE_2,
+        TILE_SEP_2,
+        ROUND_RADIUS,
+        basket_pos,
+        basket_shift,
+    );
+
+    // prepare textures for input name form
+    let inf_ssy = (2 * FONT_MIN_SIZE) as i16;
+    let inf_fp1 = coord!((W_WIDTH as i16 - fsx as i16) >> 1, (W_HEIGHT as i16 - fsy as i16 - inf_ssy) >> 1);
+    let inf_fp2 = inf_fp1 + coord!(0, fsy as i16 - BORDER);
+    let inf_pos1 = inf_fp1 - 2 * BORDER;
+    let inf_pos2 = inf_fp1 + coord!(fsx as i16, inf_ssy + fsy as i16 - BORDER) + 2 * BORDER;
+    let inf_texture_big = build_rounded_rect(inf_pos1, inf_pos2, BIG_ROUND_RADIUS);
+    let inf_texture_small = build_rounded_rect(inf_pos1 + BORDER, inf_pos2 - BORDER, BIG_ROUND_RADIUS);
 
     // fill basket by random figures
     basket.rnd_fill(figures);
@@ -268,7 +285,7 @@ fn main() {
         msg!(render::font(&mut canvas, &font, timer_pos, palette[10], &extra::as_time_str(&game_stop));
                  canvas.window(), GT);
         msg!(field.render(&mut canvas, palette[9]); canvas.window(), GT);
-        msg!(basket.render(&mut canvas, palette[9], ROUND_RADIUS); canvas.window(), GT);
+        msg!(basket.render(&mut canvas, palette[9]); canvas.window(), GT);
 
         if gameover_flag && !name_input_flag {
             // highscore table
@@ -297,8 +314,8 @@ fn main() {
             let p2 = fp1 + coord!(fsx as i16, ss.y + fsy as i16 - BORDER) + 2 * BORDER;
             let p3 = p1 + BORDER;
             let p4 = p2 - BORDER;
-            msg!(render::fill_rounded_rect(&mut canvas, p1, p2, BIG_ROUND_RADIUS, palette[12]); canvas.window(), GT);
-            msg!(render::fill_rounded_rect(&mut canvas, p3, p4, BIG_ROUND_RADIUS, palette[8]); canvas.window(), GT);
+            msg!(render::fill_rounded_rect_new(&mut canvas, p1, p2, BIG_ROUND_RADIUS, palette[12]); canvas.window(), GT);
+            msg!(render::fill_rounded_rect_new(&mut canvas, p3, p4, BIG_ROUND_RADIUS, palette[8]); canvas.window(), GT);
             msg!(render::font(&mut canvas, &font_big, fp1 - coord!(0, 5), palette[10], GAME_OVER); canvas.window(), GT);
             for (index, text) in scores.iter().enumerate() {
                 let fp2 = fp1 + coord!(0, fsy as i16 + index as i16 * (ss.y / scores.len() as i16)) - coord!(0, BORDER);
@@ -307,18 +324,11 @@ fn main() {
             }
         } else if gameover_flag && name_input_flag {
             // gameover input name
-            let ssy = (2 * FONT_MIN_SIZE) as i16;
-            let fp1 = coord!((W_WIDTH as i16 - fsx as i16) >> 1, (W_HEIGHT as i16 - fsy as i16 - ssy) >> 1);
-            let p1 = fp1 - 2 * BORDER;
-            let p2 = fp1 + coord!(fsx as i16, ssy + fsy as i16 - BORDER) + 2 * BORDER;
-            let p3 = p1 + BORDER;
-            let p4 = p2 - BORDER;
-            let fp2 = fp1 + coord!(0, fsy as i16 - BORDER);
             let input_name = format!("{}{}", GAME_OVER_TEXT, user_name);
-            msg!(render::fill_rounded_rect(&mut canvas, p1, p2, BIG_ROUND_RADIUS, palette[12]); canvas.window(), GT);
-            msg!(render::fill_rounded_rect(&mut canvas, p3, p4, BIG_ROUND_RADIUS, palette[8]); canvas.window(), GT);
-            msg!(render::font(&mut canvas, &font_big, fp1, palette[10], GAME_OVER); canvas.window(), GT);
-            msg!(render::font(&mut canvas, &font, fp2, palette[10], &input_name); canvas.window(), GT);
+            msg!(render::fill_rounded_rect_from(&mut canvas, &inf_texture_big, palette[12]); canvas.window(), GT);
+            msg!(render::fill_rounded_rect_from(&mut canvas, &inf_texture_small, palette[8]); canvas.window(), GT);
+            msg!(render::font(&mut canvas, &font_big, inf_fp1, palette[10], GAME_OVER); canvas.window(), GT);
+            msg!(render::font(&mut canvas, &font, inf_fp2, palette[10], &input_name); canvas.window(), GT);
         } else {
             // stop game timer
             game_stop = game_start.elapsed();
@@ -334,7 +344,9 @@ fn main() {
             } else {
                 mouse_pos - size_2
             };
-            msg!(figure.render(&mut canvas, figure_pos, size_1, sep, alpha_value, ROUND_RADIUS); canvas.window(), GT);
+            // field already have this texture
+            let block_texture = &field.textures[&(TILE_SIZE_1 as i16)];
+            msg!(figure.render(&mut canvas, block_texture, figure_pos, size_1, sep, alpha_value); canvas.window(), GT);
         }
         canvas.present();
 
