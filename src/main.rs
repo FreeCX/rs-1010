@@ -65,10 +65,10 @@ fn main() {
     let mut score_table = score::ScoreTable::from_config(&config);
 
     // objects positions
-    let basket_pos = coord!(FIELD_WIDTH as i16, 69);
-    let basket_shift = coord!(0, BASKET_LEN as i16);
+    let basket_pos = coord!(FIELD_WIDTH as i16, FIELD_SHIFT + 3 * FONT_HEIGHT as i16);
+    let basket_shift = coord!(0, BASKET_HEIGHT as i16);
     let field_pos = coord!(FIELD_SHIFT);
-    let score_pos = coord!(FIELD_WIDTH as i16, FIELD_SHIFT - 3);
+    let score_pos = coord!(FIELD_WIDTH as i16 + 1, FIELD_SHIFT - 3);
     let highscore_pos = score_pos + coord!(0, FONT_HEIGHT - 1);
     let timer_pos = highscore_pos + coord!(0, FONT_HEIGHT - 1);
     let mut mouse_pos = coord!();
@@ -235,7 +235,7 @@ fn main() {
 
     // game objects
     let mut current_figure: Option<game::Figure> = None;
-    let mut field = game::Field::init_square(FIELD_SIZE, TILE_SIZE_1, TILE_SEP_1, ROUND_RADIUS, field_pos);
+    let mut field = game::Field::init_square(FIELD_LEN, TILE_SIZE_1, TILE_SEP_1, ROUND_RADIUS, field_pos);
     let mut basket = game::BasketSystem::new(
         BASKET_COUNT,
         BASKET_SIZE,

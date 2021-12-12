@@ -26,30 +26,35 @@ pub const BLOCK_COST_MULTIPLIER: u32 = 5;
 // basket params
 pub const BASKET_COUNT: u8 = 3;
 pub const BASKET_SIZE: u8 = 5;
+pub const BASKET_SHIFT: u8 = 7;
 
 // filed params
-pub const FIELD_SIZE: u8 = 10;
-pub const FIELD_SHIFT: i16 = 10;
+pub const FIELD_LEN: u8 = 10;
+pub const FIELD_SHIFT: i16 = 15;
+pub const FIELD_BASKET_SEP: u32 = 10;
 
 // field tile size & separator
 pub const TILE_SIZE_1: u8 = 32;
-pub const TILE_SEP_1: u8 = 3;
+pub const TILE_SEP_1: u8 = 4;
 
 // basket tile size & separator
 pub const TILE_SIZE_2: u8 = TILE_SIZE_1 / 2;
-pub const TILE_SEP_2: u8 = 2;
+pub const TILE_SEP_2: u8 = 3;
 
 // game block round rect
 pub const ROUND_RADIUS: i16 = 1;
 
 // gameover round rect radius
 pub const BIG_ROUND_RADIUS: i16 = 8;
-pub const FIELD_WIDTH: u32 = (TILE_SIZE_1 as u32 + TILE_SEP_1 as u32) * FIELD_SIZE as u32 + 2 * FIELD_SHIFT as u32;
-pub const BASKET_LEN: u32 = (TILE_SIZE_2 as u32 + TILE_SEP_2 as u32) * BASKET_SIZE as u32 + FIELD_SHIFT as u32;
+pub const FIELD_WIDTH: u32 =
+    FIELD_SHIFT as u32 + (TILE_SIZE_1 as u32 + TILE_SEP_1 as u32) * FIELD_LEN as u32 + FIELD_BASKET_SEP;
+pub const FIELD_HEIGHT: u32 = 2 * FIELD_SHIFT as u32 + (TILE_SIZE_1 as u32 + TILE_SEP_1 as u32) * FIELD_LEN as u32;
+pub const BASKET_WIDTH: u32 = (TILE_SIZE_2 as u32 + TILE_SEP_2 as u32) * BASKET_SIZE as u32;
+pub const BASKET_HEIGHT: u32 = BASKET_WIDTH + BASKET_SHIFT as u32;
 
 // game window size
-pub const W_WIDTH: u32 = FIELD_WIDTH + BASKET_LEN;
-pub const W_HEIGHT: u32 = FIELD_WIDTH;
+pub const W_WIDTH: u32 = FIELD_WIDTH + BASKET_WIDTH + FIELD_SHIFT as u32 - TILE_SEP_2 as u32;
+pub const W_HEIGHT: u32 = FIELD_HEIGHT - TILE_SEP_1 as u32;
 
 // font consts
 pub const FONT_MIN_SIZE: u16 = 12;
