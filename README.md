@@ -14,7 +14,7 @@ My implemention of puzzle game 1010! in rust
 - Simple leaderboard
 - Background music + effects
 - Few dependencies (but bad codebase :smile:)
-- One file [configuration](./wiki/Config) (`./resources/config.ini`)
+- One file [configuration](../../wiki/Config) (`./resources/config.ini`)
 
 ## License
 See [license file](LICENSE)
