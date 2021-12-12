@@ -40,7 +40,7 @@ pub const TILE_SIZE_2: u8 = TILE_SIZE_1 / 2;
 pub const TILE_SEP_2: u8 = 2;
 
 // game block round rect
-pub const ROUND_RADIUS: i16 = 4;
+pub const ROUND_RADIUS: i16 = 1;
 
 // gameover round rect radius
 pub const BIG_ROUND_RADIUS: i16 = 8;

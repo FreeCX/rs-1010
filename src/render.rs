@@ -14,7 +14,7 @@ pub fn build_rounded_rect(c1: Coord, c2: Coord, r: i16) -> RectData {
     let approx_memory = (5.7 * r as f32).round() as usize + 7;
     // prepare points for polygon
     let mut v: Vec<(i16, i16)> = Vec::with_capacity(approx_memory);
-    let (mut x, mut y) = (r - 1, 0);
+    let (mut x, mut y) = (r, -1);
     let (mut dx, mut dy) = (1, 1);
     let mut err = dx - (r << 1);
     while x >= y {
@@ -22,10 +22,10 @@ pub fn build_rounded_rect(c1: Coord, c2: Coord, r: i16) -> RectData {
         v.push((c2.x + y - r, c1.y + r - x)); // 2
         v.push((c1.x + r - y, c1.y + r - x)); // 3
         v.push((c1.x + r - x, c1.y + r - y)); // 4
-        v.push((c1.x + r - x, c2.y + y - r)); // 5
-        v.push((c1.x + r - y, c2.y + x - r)); // 6
-        v.push((c2.x + y - r, c2.y + x - r)); // 7
-        v.push((c2.x + x - r, c2.y + y - r)); // 8
+        v.push((c1.x + r - x, c2.y + y - r - 1)); // 5
+        v.push((c1.x + r - y, c2.y + x - r - 1)); // 6
+        v.push((c2.x + y - r, c2.y + x - r - 1)); // 7
+        v.push((c2.x + x - r, c2.y + y - r - 1)); // 8
         if err <= 0 {
             y += 1;
             err += dy;
@@ -44,7 +44,7 @@ pub fn build_rounded_rect(c1: Coord, c2: Coord, r: i16) -> RectData {
     // min and max of x and y
     let (min_y, max_y) = (v[0].1, v[v.len() - 1].1);
     let (mut min_x, mut max_x) = (0, 0);
-    // allocated buffer for Rect's: (top + bottom) * r + center
+    // allocated buffer for Rects: (top + bottom) * r + center
     let mut rects = Vec::with_capacity(2 * r as usize + 1);
     // rectangle in center of rounded rect
     let mut rect = (coord!(), coord!());

@@ -67,7 +67,7 @@ fn main() {
     // objects positions
     let basket_pos = coord!(FIELD_WIDTH as i16, 69);
     let basket_shift = coord!(0, BASKET_LEN as i16);
-    let field_pos = coord!(FIELD_SHIFT, FIELD_SHIFT);
+    let field_pos = coord!(FIELD_SHIFT);
     let score_pos = coord!(FIELD_WIDTH as i16, FIELD_SHIFT - 3);
     let highscore_pos = score_pos + coord!(0, FONT_HEIGHT - 1);
     let timer_pos = highscore_pos + coord!(0, FONT_HEIGHT - 1);
