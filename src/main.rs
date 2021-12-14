@@ -278,7 +278,7 @@ fn main() {
         config = config.section("game").erase("state");
         let _ = config.to_file(CONFIG_FILE);
         // deserialize
-        save::deserialize(state, &palette[6], figures, &mut field, &mut basket, &mut score, &mut game_start);
+        save::deserialize(state, &palette[0], figures, &mut field, &mut basket, &mut score, &mut game_start);
         // update timer
         game_stop = game_start.elapsed();
     }
