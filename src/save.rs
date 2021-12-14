@@ -17,7 +17,7 @@ fn as_int(data: &str) -> usize {
 }
 
 fn encode(data: String) -> String {
-    // игнорим невалидные данные
+    // ignore non valid data
     assert_eq!(data.len() % BLOCK_SIZE, 0, "data size is not divided by {}", BLOCK_SIZE);
 
     let mut result = String::new();
@@ -42,8 +42,8 @@ fn decode(data: String) -> String {
 pub fn serialize(field: Field, bsystem: BasketSystem, score: u32, time: SystemTime) -> String {
     let duration = time.elapsed().unwrap_or_else(|_| Duration::from_secs(0)).as_secs();
 
-    // - Состояние игрового поля
-    //   - 100 бит информации (10x10)
+    // - Game field state
+    //   - 100 bits (10x10)
     let mut field_v = String::new();
     for y in 0..field.field_size.y {
         for x in 0..field.field_size.x {
@@ -54,8 +54,8 @@ pub fn serialize(field: Field, bsystem: BasketSystem, score: u32, time: SystemTi
         }
     }
 
-    // - Фигуры в корзинах
-    //   - 15 бит (5 бит на фигуру)
+    // - Figures in basket
+    //   - 15 bits (5 bits per figure)
     let mut basket_v = String::new();
     for basket in bsystem.destroy() {
         if let Some(figure) = basket.figure() {
@@ -65,12 +65,12 @@ pub fn serialize(field: Field, bsystem: BasketSystem, score: u32, time: SystemTi
         }
     }
 
-    // - Текущий счёт
-    //   - 32 бита (u32)
-    // - Текущее время
-    //   - 64 бита (u64)
-    // - Паддинг
-    //   - 5 бит
+    // - Current score
+    //   - 32 bits (u32)
+    // - Current game time
+    //   - 64 bits (u64)
+    // - Padding
+    //   - 5 bits
     encode(format!("{}{}{:032b}{:064b}00000", field_v, basket_v, score, duration))
 }
 
@@ -78,31 +78,30 @@ pub fn deserialize(
     data: String, default: &Color, figures: &[Figure], field: &mut Field, basket: &mut BasketSystem, score: &mut u32,
     time: &mut SystemTime,
 ) {
-    // будем пока поддерживать только сохранение по дефолтным размерам все игровые элементы
+    // we support only 36 bytes game state
     if data.len() != 36 {
         return;
     }
-
-    // распаковываем наши данные
+    // decode state
     let data = decode(data);
 
-    // размер игрового поля
+    // calc field size
     let field_size = field.field_size.x as usize * field.field_size.y as usize;
-    // 5 бит одна фигура
+    // 5 bits for one figure
     let figure_size = 5;
     let basket_size = figure_size * basket.figures().len();
     let basket_range_right = field_size + basket_size;
-    // 32 бита на весь score
+    // 32 bits for score
     let score_range_right = basket_range_right + 32;
 
-    // диапазоны для вытаскивания результатов
+    // param positions in data
     let field_range = 0..field_size;
     let basket_range = field_size..basket_range_right;
     let score_range = basket_range_right..score_range_right;
-    // 64 бита на весь duration
+    // 64 bits for elapsed time (duration)
     let time_range = score_range_right..score_range_right + 64;
 
-    // восстанавливаем игровое поле
+    // restore field
     for (index, item) in (&data[field_range]).chars().enumerate() {
         let x = index as i16 % field.field_size.y;
         let y = index as i16 / field.field_size.y;
@@ -111,7 +110,7 @@ pub fn deserialize(
         }
     }
 
-    // восстанавливаем фигуры в корзинах
+    // restore figures
     for (index, v) in basket_range.step_by(figure_size).enumerate() {
         let findex = as_int(&data[v..v + figure_size]);
         if findex > 0 {
@@ -121,10 +120,10 @@ pub fn deserialize(
         }
     }
 
-    // восстанавливаем игровой счёт
+    // restore game score
     *score = as_int(&data[score_range]) as u32;
 
-    // восстанавливаем игровое время
+    // restore elapsed time
     let duration = Duration::from_secs(as_int(&data[time_range]) as u64);
     let current = SystemTime::now();
     *time = current.checked_sub(duration).unwrap_or(current);
