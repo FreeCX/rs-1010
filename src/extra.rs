@@ -1,20 +1,28 @@
 use std::ops::{Add, Mul, Shr, Sub};
 use std::time::{Duration, SystemTimeError};
 
+use sdl2::rect::Rect;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Coord {
     pub x: i16,
     pub y: i16,
 }
 
+#[derive(PartialEq)]
+pub enum RectPart {
+    Top,
+    Bottom,
+}
+
+#[derive(Clone)]
+pub struct RectData(Vec<Rect>);
+
 #[macro_export]
 macro_rules! figure {
     ($i:expr, $c:expr; $( ($x:expr, $y:expr) ),*) => {
         {
-            let mut slice = Vec::new();
-            $(
-                slice.push(coord!($x, $y));
-            )*
+            let slice = vec![$( coord!($x, $y), )* ];
             game::Figure::from_slice($i, &slice, $c)
         }
     };
@@ -59,7 +67,7 @@ macro_rules! msg {
                     $wnd,
                 )
                 .unwrap_or(());
-                panic!(err);
+                panic!("{}", err);
             }
         }
     };
@@ -67,7 +75,7 @@ macro_rules! msg {
 
 // convert Duration to HH:MM:SS
 pub fn as_time_str(duration: &Result<Duration, SystemTimeError>) -> String {
-    let secs = duration.clone().unwrap_or(Duration::from_secs(0)).as_secs();
+    let secs = duration.clone().unwrap_or_else(|_| Duration::from_secs(0)).as_secs();
     let (hours, minutes, seconds) = (secs / (60 * 60), (secs / 60) % 60, secs % 60);
     format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
 }
@@ -173,5 +181,27 @@ where
         self.x >>= v;
         self.y >>= v;
         self
+    }
+}
+
+impl RectData {
+    pub fn new(lines: Vec<Rect>) -> Self {
+        RectData(lines)
+    }
+
+    pub fn shift(&self, size: Coord) -> Self {
+        let mut shifted = self.clone();
+
+        // shift lines
+        for point in shifted.0.iter_mut() {
+            point.x += size.x as i32;
+            point.y += size.y as i32;
+        }
+
+        shifted
+    }
+
+    pub fn data(&self) -> &'_ Vec<Rect> {
+        &self.0
     }
 }

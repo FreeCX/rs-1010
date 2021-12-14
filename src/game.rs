@@ -1,15 +1,17 @@
-use crate::extra::Coord;
-use crate::random::Random;
-use crate::render::fill_rounded_rect;
+use std::collections::{HashMap, HashSet};
+use std::mem;
+use std::time::SystemTime;
+
 use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
-use std::collections::{HashMap, HashSet};
-use std::time::SystemTime;
 
 use crate::consts::{GET_COLOR_ERROR, SQR_SIZE};
+use crate::extra::{Coord, RectData};
+use crate::random::Random;
+use crate::render::*;
 
-type Blocks = HashSet<(i16, i16)>;
+type Blocks = HashSet<Coord>;
 
 #[derive(Clone, Copy)]
 pub struct Lines {
@@ -24,6 +26,7 @@ enum State {
 }
 
 pub struct Field {
+    pub textures: HashMap<i16, RectData>,
     pub field_size: Coord,
     tile_size: Coord,
     tile_sep: Coord,
@@ -39,7 +42,7 @@ pub struct Field {
 pub struct Figure {
     blocks: HashSet<Coord>,
     color: Color,
-    // не лучший вариант для идентфикации фигуры
+    // not the best way to identify figure
     pub index: u8,
 }
 
@@ -55,6 +58,7 @@ pub struct BasketSystem {
     basket: Vec<Basket>,
     current: Option<usize>,
     rnd: Random,
+    texture: RectData,
 }
 
 impl Lines {
@@ -68,17 +72,25 @@ impl Lines {
 }
 
 impl Field {
-    pub fn init_square(pole_size: u8, tile_size: u8, tile_sep: u8, pos: Coord) -> Field {
+    pub fn init_square(pole_size: u8, tile_size: u8, tile_sep: u8, radius: i16, pos: Coord) -> Field {
+        // alloc all size tiles
+        let mut textures = HashMap::new();
+        for i in (8..=32).step_by(2) {
+            let block = build_rounded_rect(coord!(), coord!(i as i16), radius);
+            textures.insert(i as i16, block);
+        }
+
         Field {
             field_size: coord!(pole_size as i16),
             tile_size: coord!(tile_size as i16),
             tile_sep: coord!(tile_sep as i16),
-            pos,
             field: HashSet::new(),
             colors: HashMap::new(),
             state: State::Wait,
             clear: Blocks::new(),
             lines: Lines::empty(),
+            pos,
+            textures,
         }
     }
 
@@ -156,16 +168,13 @@ impl Field {
     }
 
     fn remove_blocks(&mut self) {
-        let blocks = self.clear.clone();
-        for (x, y) in blocks {
-            let p = coord!(x, y);
+        for p in mem::take(&mut self.clear) {
             self.unset(&p);
         }
-        self.clear.clear();
     }
 
     pub fn can_set(&self, figures: Vec<Figure>) -> bool {
-        if figures.len() == 0 || self.state != State::Wait {
+        if figures.is_empty() || self.state != State::Wait {
             return true;
         }
         for figure in figures {
@@ -185,23 +194,21 @@ impl Field {
     }
 
     pub fn clear(&mut self) {
-        self.field.clear();
-        self.colors.clear();
-        self.state = State::Wait;
+        self.state = State::Clear(SQR_SIZE);
         self.lines = Lines::empty();
         self.clear = Blocks::new();
+
+        for pos in &self.field {
+            self.clear.insert(*pos);
+        }
     }
 
     pub fn update_state(&mut self, x: i16, y: i16, p: u8) {
         match &self.state {
-            State::Wait => {
-                self.state = State::Clear(p);
-                self.clear.insert((x, y));
-            }
-            State::Clear(_) => {
-                self.clear.insert((x, y));
-            }
+            State::Wait => self.state = State::Clear(p),
+            State::Clear(_) => {}
         };
+        self.clear.insert(coord!(x, y));
     }
 
     pub fn next_state(&mut self) -> Option<Lines> {
@@ -253,7 +260,7 @@ impl Field {
         }
     }
 
-    pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color, radius: i16) -> Result<(), String> {
+    pub fn render(&self, surface: &mut Canvas<Window>, empty_field_color: Color) -> Result<(), String> {
         for y in 0..self.field_size.y {
             for x in 0..self.field_size.x {
                 let pos = coord!(x, y);
@@ -263,26 +270,28 @@ impl Field {
                     empty_field_color
                 };
 
+                let position = pos * (self.tile_size + self.tile_sep) + self.pos;
                 // block shift size
-                let shift = match &self.state {
+                let shift_pos = match &self.state {
                     State::Clear(p) => {
-                        if self.clear.contains(&(x, y)) {
+                        if self.clear.contains(&coord!(x, y)) {
                             coord!(SQR_SIZE as i16 - *p as i16, SQR_SIZE as i16 - *p as i16)
                         } else {
-                            coord!(0, 0)
+                            coord!()
                         }
                     }
-                    State::Wait => coord!(0, 0),
+                    State::Wait => coord!(),
                 };
 
-                let p1 = pos * (self.tile_size + self.tile_sep) + self.pos;
-                let p2 = p1 + self.tile_size;
-
-                // background for animated blocks
-                if !shift.is_zero() {
-                    fill_rounded_rect(canvas, p1, p2, radius, empty_field_color)?;
+                // background block
+                if !shift_pos.is_zero() {
+                    let data = self.textures[&self.tile_size.x].shift(position);
+                    fill_rounded_rect_from(surface, &data, empty_field_color)?;
                 }
-                fill_rounded_rect(canvas, p1 + shift, p2 - shift, radius, color)?;
+                // animated block
+                let tile = self.tile_size.x - 2 * shift_pos.x;
+                let data = self.textures[&tile].shift(position + shift_pos);
+                fill_rounded_rect_from(surface, &data, color)?;
             }
         }
         Ok(())
@@ -300,8 +309,8 @@ impl Figure {
 
     pub fn shift(&self, pos: Coord) -> Figure {
         let mut blocks = HashSet::new();
-        for block in self.blocks.clone() {
-            blocks.insert(pos + block);
+        for block in &self.blocks {
+            blocks.insert(pos + *block);
         }
         Figure { blocks, color: self.color, index: self.index }
     }
@@ -320,13 +329,13 @@ impl Figure {
     }
 
     pub fn render(
-        &self, canvas: &mut Canvas<Window>, pos: Coord, size: Coord, sep: Coord, alpha: u8, radius: i16,
+        &self, surface: &mut Canvas<Window>, texture: &RectData, pos: Coord, size: Coord, sep: Coord, alpha: u8,
     ) -> Result<(), String> {
         let color = Color::RGBA(self.color.r, self.color.g, self.color.b, alpha);
         for c in &self.blocks {
-            let p1 = *c * (size + sep) + pos;
-            let p2 = p1 + size;
-            fill_rounded_rect(canvas, p1, p2, radius, color)?;
+            let position = *c * (size + sep) + pos;
+            let tex = texture.shift(position);
+            fill_rounded_rect_from(surface, &tex, color)?;
         }
         Ok(())
     }
@@ -354,9 +363,11 @@ impl Basket {
     }
 
     pub fn pop(&mut self) -> Option<Figure> {
-        let figure = self.figure.clone();
+        self.figure.take()
+    }
+
+    pub fn remove(&mut self) {
         self.figure = None;
-        figure
     }
 
     pub fn figure(&self) -> Option<Figure> {
@@ -367,23 +378,25 @@ impl Basket {
         (self.field_size - figure.max()) >> 1_i16
     }
 
-    pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color, radius: i16) -> Result<(), String> {
+    pub fn render(
+        &self, surface: &mut Canvas<Window>, texture: &RectData, empty_field_color: Color,
+    ) -> Result<(), String> {
         let wsize = self.tile_size + self.tile_sep;
         let color = empty_field_color;
         for y in 0..self.field_size.y {
             for x in 0..self.field_size.x {
-                let p1 = coord!(x, y) * wsize + self.pos;
-                let p2 = p1 + wsize - self.tile_sep;
-                fill_rounded_rect(canvas, p1, p2, radius, color)?;
+                let position = coord!(x, y) * wsize + self.pos;
+                let tex = texture.shift(position);
+                fill_rounded_rect_from(surface, &tex, color)?;
             }
         }
-        if let Some(figure) = self.figure.clone() {
+        if let Some(figure) = &self.figure {
             let color = figure.color;
-            let cen = self.centering(&figure);
-            for pos in figure.blocks {
-                let p1 = (pos + cen) * wsize + self.pos;
-                let p2 = p1 + wsize - self.tile_sep;
-                fill_rounded_rect(canvas, p1, p2, radius, color)?;
+            let cen = self.centering(figure);
+            for pos in &figure.blocks {
+                let position = (*pos + cen) * wsize + self.pos;
+                let tex = texture.shift(position);
+                fill_rounded_rect_from(surface, &tex, color)?;
             }
         }
         Ok(())
@@ -391,8 +404,11 @@ impl Basket {
 }
 
 impl BasketSystem {
-    pub fn new(count: u8, field_size: u8, tile_size: u8, tile_sep: u8, pos: Coord, shift: Coord) -> BasketSystem {
+    pub fn new(
+        count: u8, field_size: u8, tile_size: u8, tile_sep: u8, radius: i16, pos: Coord, shift: Coord,
+    ) -> BasketSystem {
         let mut basket = Vec::new();
+        let texture = build_rounded_rect(coord!(), coord!(tile_size as i16), radius);
         let seed = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
             Ok(n) => n.as_secs(),
             // https://xkcd.com/221/
@@ -403,7 +419,7 @@ impl BasketSystem {
             let bpos = pos + shift * (i as i16);
             basket.push(Basket::init_square(field_size, tile_size, tile_sep, bpos));
         }
-        BasketSystem { basket, current: None, rnd }
+        BasketSystem { basket, current: None, rnd, texture }
     }
 
     pub fn get(&mut self, pos: Coord) -> Option<Figure> {
@@ -422,6 +438,12 @@ impl BasketSystem {
 
     pub fn pop(&mut self, index: usize) {
         self.basket[index].pop();
+    }
+
+    pub fn clear(&mut self) {
+        for fig in self.basket.iter_mut() {
+            fig.remove();
+        }
     }
 
     pub fn ret(&mut self, figure: Figure) {
@@ -462,9 +484,9 @@ impl BasketSystem {
         self.basket
     }
 
-    pub fn render(&self, canvas: &mut Canvas<Window>, empty_field_color: Color, radius: i16) -> Result<(), String> {
+    pub fn render(&self, surface: &mut Canvas<Window>, empty_field_color: Color) -> Result<(), String> {
         for item in &self.basket {
-            item.render(canvas, empty_field_color, radius)?;
+            item.render(surface, &self.texture, empty_field_color)?;
         }
         Ok(())
     }

@@ -16,24 +16,28 @@ pub fn panic_handler(panic_info: &panic::PanicInfo) {
          Thank you!\n\n\
          --- crash report start ---\n\
          name: {}\n\
-         version: {} ({})\n\
+         version: {} ({} {} {})\n\
          compiler: {}\n\
          package manager: {}\n\
-         host: {}\n",
+         host: {}\n\
+         os: {}\n",
         env!("CARGO_PKG_AUTHORS"),
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
-        build::GIT_PROJECT_INFO,
+        build::GIT_PROJECT_BRANCH,
+        build::GIT_PROJECT_HASH,
+        build::PROJECT_BUILD_DATE,
         build::RUST_HEADER,
         build::CARGO_HEADER,
         build::RUST_HOST,
+        build::CARGO_OS,
     ));
 
     buffer.push_str("packages:\n");
     for (name, version) in build::APP_PACKAGES.iter() {
         buffer.push_str(&format!("  {} {}\n", name, version));
     }
-    buffer.push_str("\n");
+    buffer.push('\n');
 
     match panic_info.location() {
         Some(location) => {
@@ -55,12 +59,9 @@ pub fn panic_handler(panic_info: &panic::PanicInfo) {
                 buffer.push_str(&symbol_info);
                 index += 1;
             }
-            match (symbol.filename(), symbol.lineno()) {
-                (Some(filename), Some(line)) => {
-                    let file_info = format!("\t\t\tat {}:{}\n", filename.display(), line);
-                    buffer.push_str(&file_info);
-                }
-                _ => {}
+            if let (Some(filename), Some(line)) = (symbol.filename(), symbol.lineno()) {
+                let file_info = format!("\t\t\tat {}:{}\n", filename.display(), line);
+                buffer.push_str(&file_info);
             }
         });
         true

@@ -1,22 +1,15 @@
 // https://en.wikipedia.org/wiki/Xorshift
-pub struct Random {
-    x: u32,
-    y: u32,
-    z: u32,
-    w: u32,
-}
+pub struct Random(u32);
 
 impl Random {
     pub fn new(seed: u32) -> Random {
-        Random { x: seed, y: 362_436_069, z: 521_288_629, w: 88_675_123 }
+        Random(seed)
     }
 
     pub fn rand(&mut self) -> u32 {
-        let t = self.x ^ (self.x << 11);
-        self.x = self.y;
-        self.y = self.z;
-        self.z = self.w;
-        self.w = self.w ^ (self.w >> 19) ^ t ^ (t >> 8);
-        self.w
+        self.0 ^= self.0 << 13;
+        self.0 ^= self.0 >> 17;
+        self.0 ^= self.0 << 5;
+        self.0
     }
 }
