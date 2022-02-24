@@ -29,3 +29,4 @@ rpath = false
 lto = true
 debug-assertions = false
 overflow-checks = false
+strip = true
