@@ -1,4 +1,4 @@
-use crate::extra::{Coord, RectData, RectPart};
+use crate::extra::{Coord, RectData};
 
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
@@ -9,34 +9,25 @@ use sdl2::video::Window;
 
 type SDL2Result = Result<(), String>;
 
+fn s_ellipse(a: f32, b: f32, n: f32, m: f32, t: f32) -> (f32, f32) {
+    let x = a + t.cos().abs().powf(2.0 / m) * a.copysign(t.cos());
+    let y = b + t.sin().abs().powf(2.0 / n) * b.copysign(t.sin());
+    (x, y)
+}
+
 pub fn build_rounded_rect(c1: Coord, c2: Coord, r: i16) -> RectData {
-    // because 8 * r memory is too big
-    let approx_memory = (5.7 * r as f32).round() as usize + 7;
-    // prepare points for polygon
-    let mut v: Vec<(i16, i16)> = Vec::with_capacity(approx_memory);
-    let (mut x, mut y) = (r, -1);
-    let (mut dx, mut dy) = (1, 1);
-    let mut err = dx - (r << 1);
-    while x >= y {
-        v.push((c2.x + x - r, c1.y + r - y)); // 1
-        v.push((c2.x + y - r, c1.y + r - x)); // 2
-        v.push((c1.x + r - y, c1.y + r - x)); // 3
-        v.push((c1.x + r - x, c1.y + r - y)); // 4
-        v.push((c1.x + r - x, c2.y + y - r - 1)); // 5
-        v.push((c1.x + r - y, c2.y + x - r - 1)); // 6
-        v.push((c2.x + y - r, c2.y + x - r - 1)); // 7
-        v.push((c2.x + x - r, c2.y + y - r - 1)); // 8
-        if err <= 0 {
-            y += 1;
-            err += dy;
-            dy += 2;
-        }
-        if err > 0 {
-            x -= 1;
-            dx += 2;
-            err += dx - (r << 1);
-        }
-    }
+    let steps: i32 = 20;
+    let a = 0.5 * (c2.x - c1.x) as f32;
+    let b = 0.5 * (c2.y - c1.y - 1) as f32;
+    let r = r as f32;
+    println!("a, b = {a}, {b}");
+    let mut v: Vec<(i16, i16)> = (0_i32..steps)
+        .map(|dt| {
+            let t = dt as f32 * std::f32::consts::TAU / steps as f32;
+            let (x, y) = s_ellipse(a, b, r, r, t);
+            ((x.round() as i16), (y.round() as i16))
+        })
+        .collect();
 
     // --- reorder data for drawing ---
 
@@ -44,11 +35,7 @@ pub fn build_rounded_rect(c1: Coord, c2: Coord, r: i16) -> RectData {
     // min and max of x and y
     let (min_y, max_y) = (v[0].1, v[v.len() - 1].1);
     let (mut min_x, mut max_x) = (0, 0);
-    // allocated buffer for Rects: (top + bottom) * r + center
-    let mut rects = Vec::with_capacity(2 * r as usize + 1);
-    // rectangle in center of rounded rect
-    let mut rect = (coord!(), coord!());
-    let mut part = RectPart::Top;
+    let mut rects = vec![];
 
     for y in min_y..=max_y {
         let mut iterator = v.iter().filter(|x| x.1 == y);
@@ -59,24 +46,11 @@ pub fn build_rounded_rect(c1: Coord, c2: Coord, r: i16) -> RectData {
                 min_x = min_x.min(item.0);
                 max_x = max_x.max(item.0);
             }
-
             rects.push(Rect::new(min_x as i32, y as i32, (max_x - min_x) as u32, 0));
-
-            // find bottom part of rectangle
-            if part == RectPart::Bottom {
-                rect.1.y = y - rect.0.y;
-                part = RectPart::Top;
-            }
-        } else if part == RectPart::Top {
-            // top part founded!
-            rect.0.x = min_x;
-            rect.0.y = y;
-            rect.1.x = max_x - min_x;
-            part = RectPart::Bottom;
+        } else {
+            rects.push(Rect::new(min_x as i32, y as i32, (max_x - min_x) as u32, 0));
         }
     }
-
-    rects.push(Rect::new(rect.0.x as i32, rect.0.y as i32, rect.1.x as u32, rect.1.y as u32));
     RectData::new(rects)
 }
 

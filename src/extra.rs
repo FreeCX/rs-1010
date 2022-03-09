@@ -9,12 +9,6 @@ pub struct Coord {
     pub y: i16,
 }
 
-#[derive(PartialEq)]
-pub enum RectPart {
-    Top,
-    Bottom,
-}
-
 #[derive(Clone)]
 pub struct RectData(Vec<Rect>);
 
