@@ -1,3 +1,4 @@
+
 use std::collections::{HashMap, HashSet};
 use std::mem;
 use std::time::SystemTime;
@@ -7,7 +8,7 @@ use sdl2::render::Canvas;
 use sdl2::video::Window;
 
 use crate::consts::{GET_COLOR_ERROR, SQR_SIZE};
-use crate::extra::{Coord, RectData};
+use crate::extra::{Coord, RectData, BlendColor};
 use crate::random::Random;
 use crate::render::*;
 
@@ -72,11 +73,11 @@ impl Lines {
 }
 
 impl Field {
-    pub fn init_square(pole_size: u8, tile_size: u8, tile_sep: u8, radius: i16, pos: Coord) -> Field {
+    pub fn init_square(pole_size: u8, tile_size: u8, tile_sep: u8, steps: i16, radius: i16, pos: Coord) -> Field {
         // alloc all size tiles
         let mut textures = HashMap::new();
         for i in (8..=tile_size).step_by(2) {
-            let block = build_rounded_rect(coord!(), coord!(i as i16), radius);
+            let block = build_rounded_rect(coord!(), coord!(i as i16), steps, radius);
             textures.insert(i as i16, block);
         }
 
@@ -260,7 +261,7 @@ impl Field {
         }
     }
 
-    pub fn render(&self, surface: &mut Canvas<Window>, empty_field_color: Color) -> Result<(), String> {
+    pub fn render(&self, surface: &mut Canvas<Window>, empty_field_color: Color, bg_color: Color) -> Result<(), String> {
         for y in 0..self.field_size.y {
             for x in 0..self.field_size.x {
                 let pos = coord!(x, y);
@@ -286,12 +287,12 @@ impl Field {
                 // background block
                 if !shift_pos.is_zero() {
                     let data = self.textures[&self.tile_size.x].shift(position);
-                    fill_rounded_rect_from(surface, &data, empty_field_color)?;
+                    fill_rounded_rect_from(surface, &data, BlendColor::blend(empty_field_color, bg_color))?;
                 }
                 // animated block
                 let tile = self.tile_size.x - 2 * shift_pos.x;
                 let data = self.textures[&tile].shift(position + shift_pos);
-                fill_rounded_rect_from(surface, &data, color)?;
+                fill_rounded_rect_from(surface, &data, BlendColor::blend(color, bg_color))?;
             }
         }
         Ok(())
@@ -335,7 +336,7 @@ impl Figure {
         for c in &self.blocks {
             let position = *c * (size + sep) + pos;
             let tex = texture.shift(position);
-            fill_rounded_rect_from(surface, &tex, color)?;
+            fill_rounded_rect_from(surface, &tex, color.into())?;
         }
         Ok(())
     }
@@ -379,7 +380,7 @@ impl Basket {
     }
 
     pub fn render(
-        &self, surface: &mut Canvas<Window>, texture: &RectData, empty_field_color: Color,
+        &self, surface: &mut Canvas<Window>, texture: &RectData, empty_field_color: Color, bg_color: Color
     ) -> Result<(), String> {
         let wsize = self.tile_size + self.tile_sep;
         let color = empty_field_color;
@@ -387,7 +388,7 @@ impl Basket {
             for x in 0..self.field_size.x {
                 let position = coord!(x, y) * wsize + self.pos;
                 let tex = texture.shift(position);
-                fill_rounded_rect_from(surface, &tex, color)?;
+                fill_rounded_rect_from(surface, &tex, BlendColor::blend(color, bg_color))?;
             }
         }
         if let Some(figure) = &self.figure {
@@ -396,7 +397,7 @@ impl Basket {
             for pos in &figure.blocks {
                 let position = (*pos + cen) * wsize + self.pos;
                 let tex = texture.shift(position);
-                fill_rounded_rect_from(surface, &tex, color)?;
+                fill_rounded_rect_from(surface, &tex, BlendColor::blend(color, bg_color))?;
             }
         }
         Ok(())
@@ -405,10 +406,10 @@ impl Basket {
 
 impl BasketSystem {
     pub fn new(
-        count: u8, field_size: u8, tile_size: u8, tile_sep: u8, radius: i16, pos: Coord, shift: Coord,
+        count: u8, field_size: u8, tile_size: u8, tile_sep: u8, steps: i16, radius: i16, pos: Coord, shift: Coord,
     ) -> BasketSystem {
         let mut basket = Vec::new();
-        let texture = build_rounded_rect(coord!(), coord!(tile_size as i16), radius);
+        let texture = build_rounded_rect(coord!(), coord!(tile_size as i16), steps, radius);
         let seed = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
             Ok(n) => n.as_secs(),
             // https://xkcd.com/221/
@@ -484,9 +485,9 @@ impl BasketSystem {
         self.basket
     }
 
-    pub fn render(&self, surface: &mut Canvas<Window>, empty_field_color: Color) -> Result<(), String> {
+    pub fn render(&self, surface: &mut Canvas<Window>, empty_field_color: Color, bg_color: Color) -> Result<(), String> {
         for item in &self.basket {
-            item.render(surface, &self.texture, empty_field_color)?;
+            item.render(surface, &self.texture, empty_field_color, bg_color)?;
         }
         Ok(())
     }

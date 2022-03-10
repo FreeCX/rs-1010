@@ -1,7 +1,7 @@
-use crate::extra::{Coord, RectData};
+use crate::extra::{Coord, RectData, BlendColor};
 
 use sdl2::pixels::Color;
-use sdl2::rect::Rect;
+use sdl2::rect::{Rect, Point};
 use sdl2::render::{Canvas, TextureQuery};
 use sdl2::surface::Surface;
 use sdl2::ttf::Font;
@@ -15,20 +15,23 @@ fn s_ellipse(a: f32, b: f32, n: f32, m: f32, t: f32) -> (f32, f32) {
     (x, y)
 }
 
-pub fn build_rounded_rect(c1: Coord, c2: Coord, r: i16) -> RectData {
+pub fn build_rounded_rect(c1: Coord, c2: Coord, steps: i16, r: i16) -> RectData {
     // --- render super ellipse ---
-    let steps: i32 = 20;
-    let a = 0.5 * (c2.x - c1.x) as f32;
-    let b = 0.5 * (c2.y - c1.y) as f32;
+    let eps = 1E-4;
+    let size_x = c2.x - c1.x - 1;
+    let size_y = c2.y - c1.y - 1;
+    let a = 0.5 * size_x as f32;
+    let b = 0.5 * size_y as f32;
     let r = r as f32;
-    let mut v: Vec<(i16, i16)> = (0_i32..steps)
-        .filter(|dt| dt % 5 != 0)
-        .map(|dt| {
-            let t = dt as f32 * std::f32::consts::TAU / steps as f32;
+    let mut v: Vec<_> = (0..steps)
+        .map(|dt| dt as f32 * std::f32::consts::TAU / steps as f32 + std::f32::consts::FRAC_PI_2)
+        .filter(|t| (t.sin() * t.cos()).abs() > eps)
+        .map(|t| {
             let (x, y) = s_ellipse(a, b, r, r, t);
-            (x.round() as i16, y.round() as i16)
+            (c1.x + x.round() as i16, c1.y + y.round() as i16)
         })
         .collect();
+    let points: Vec<Point> = v.iter().map(|&p| Point::new(p.0 as i32, p.1 as i32)).collect();
 
     // --- reorder data  ---
     v.sort_by(|a, b| a.1.cmp(&b.1));
@@ -46,9 +49,9 @@ pub fn build_rounded_rect(c1: Coord, c2: Coord, r: i16) -> RectData {
                 min_x = min_x.min(item.0);
                 max_x = max_x.max(item.0);
             }
-            rects.push(Rect::new(min_x as i32, y as i32, (max_x - min_x) as u32, 0));
+            rects.push(Rect::new(min_x as i32, y as i32, (max_x - min_x) as u32 + 1, 1));
         } else {
-            let mut curr = Rect::new(min_x as i32, y as i32, (max_x - min_x) as u32, 0);
+            let mut curr = Rect::new(min_x as i32, y as i32, (max_x - min_x) as u32 + 1, 1);
             if let Some(last) = rects.pop() {
                 if last.w == curr.w {
                     curr.y = last.y;
@@ -59,20 +62,24 @@ pub fn build_rounded_rect(c1: Coord, c2: Coord, r: i16) -> RectData {
         }
     }
 
-    RectData::new(rects)
+    RectData::new(rects, points)
 }
 
-pub fn fill_rounded_rect_new(canvas: &mut Canvas<Window>, c1: Coord, c2: Coord, r: i16, c: Color) -> SDL2Result {
+pub fn fill_rounded_rect_new(canvas: &mut Canvas<Window>, c1: Coord, c2: Coord, r: i16, steps: i16, c: BlendColor) -> SDL2Result {
     // --- build rounded rect ---
-    let data = build_rounded_rect(c1, c2, r);
+    let data = build_rounded_rect(c1, c2, r, steps);
     // --- draw ---
     fill_rounded_rect_from(canvas, &data, c)
 }
 
-pub fn fill_rounded_rect_from(canvas: &mut Canvas<Window>, data: &RectData, c: Color) -> SDL2Result {
+pub fn fill_rounded_rect_from(canvas: &mut Canvas<Window>, data: &RectData, c: BlendColor) -> SDL2Result {
     let last_color = canvas.draw_color();
-    canvas.set_draw_color(c);
-    canvas.fill_rects(data.data())?;
+    canvas.set_draw_color(c.main);
+    canvas.fill_rects(data.rects())?;
+    if let Some(blend) = c.blend {
+        canvas.set_draw_color(blend);
+        canvas.draw_points(data.points().as_slice())?;
+    }
     canvas.set_draw_color(last_color);
     Ok(())
 }

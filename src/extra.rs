@@ -1,7 +1,8 @@
+use sdl2::pixels::Color;
 use std::ops::{Add, Mul, Shr, Sub};
 use std::time::{Duration, SystemTimeError};
 
-use sdl2::rect::Rect;
+use sdl2::rect::{Rect, Point};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Coord {
@@ -9,8 +10,14 @@ pub struct Coord {
     pub y: i16,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct BlendColor {
+    pub main: Color,
+    pub blend: Option<Color>
+}
+
 #[derive(Clone)]
-pub struct RectData(Vec<Rect>);
+pub struct RectData(Vec<Rect>, Vec<Point>);
 
 #[macro_export]
 macro_rules! figure {
@@ -179,8 +186,8 @@ where
 }
 
 impl RectData {
-    pub fn new(lines: Vec<Rect>) -> Self {
-        RectData(lines)
+    pub fn new(lines: Vec<Rect>, points: Vec<Point>) -> Self {
+        RectData(lines, points)
     }
 
     pub fn shift(&self, size: Coord) -> Self {
@@ -191,11 +198,35 @@ impl RectData {
             point.x += size.x as i32;
             point.y += size.y as i32;
         }
+        // shift points
+        for point in shifted.1.iter_mut() {
+            point.x += size.x as i32;
+            point.y += size.y as i32;
+        }
 
         shifted
     }
 
-    pub fn data(&self) -> &'_ Vec<Rect> {
+    pub fn rects(&self) -> &'_ Vec<Rect> {
         &self.0
+    }
+
+    pub fn points(&self) -> &'_ Vec<Point> {
+        &self.1
+    }
+}
+
+impl From<Color> for BlendColor {
+    fn from(color: Color) -> Self {
+        BlendColor { main: color, blend: None }
+    }
+}
+
+impl BlendColor {
+    pub fn blend(main: Color, bg: Color) -> Self {
+        let r = main.r / 2 + bg.r / 2;
+        let g = main.g / 2 + bg.g / 2;
+        let b = main.b / 2 + bg.b / 2;
+        BlendColor { main, blend: Some(Color::RGB(r, g, b)) }
     }
 }

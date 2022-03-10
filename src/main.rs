@@ -235,12 +235,13 @@ fn main() {
 
     // game objects
     let mut current_figure: Option<game::Figure> = None;
-    let mut field = game::Field::init_square(FIELD_LEN, TILE_SIZE_1, TILE_SEP_1, ROUND_RADIUS, field_pos);
+    let mut field = game::Field::init_square(FIELD_LEN, TILE_SIZE_1, TILE_SEP_1, ROUND_STEPS, ROUND_RADIUS, field_pos);
     let mut basket = game::BasketSystem::new(
         BASKET_COUNT,
         BASKET_SIZE,
         TILE_SIZE_2,
         TILE_SEP_2,
+        BASKET_ROUND_STEPS,
         ROUND_RADIUS,
         basket_pos,
         basket_shift,
@@ -252,8 +253,8 @@ fn main() {
     let inf_fp2 = inf_fp1 + coord!(0, fsy as i16 - BORDER);
     let inf_pos1 = inf_fp1 - 2 * BORDER;
     let inf_pos2 = inf_fp1 + coord!(fsx as i16, inf_ssy + fsy as i16 - BORDER) + 2 * BORDER;
-    let inf_texture_big = build_rounded_rect(inf_pos1, inf_pos2, BIG_ROUND_RADIUS);
-    let inf_texture_small = build_rounded_rect(inf_pos1 + BORDER, inf_pos2 - BORDER, BIG_ROUND_RADIUS);
+    let inf_texture_big = build_rounded_rect(inf_pos1, inf_pos2, BIG_ROUND_STEPS, BIG_ROUND_RADIUS);
+    let inf_texture_small = build_rounded_rect(inf_pos1 + BORDER, inf_pos2 - BORDER, BIG_ROUND_STEPS, BIG_ROUND_RADIUS);
 
     // font rendering surface
     let surface_size = Rect::new(0, 0, W_WIDTH, W_HEIGHT);
@@ -283,14 +284,22 @@ fn main() {
         game_stop = game_start.elapsed();
     }
 
+    for y in 0..field.field_size.y {
+        for x in 0..field.field_size.x {
+            if (x + y) % 2 == 0 {
+                field.set(coord!(x, y), palette[0]);
+            }
+        }
+    }
+
     let mut event_pump = msg!(sdl_context.event_pump(); canvas.window(), GT);
     'running: loop {
         canvas.set_draw_color(palette[8]);
         canvas.clear();
 
         // field and basket
-        msg!(field.render(&mut canvas, palette[9]); canvas.window(), GT);
-        msg!(basket.render(&mut canvas, palette[9]); canvas.window(), GT);
+        msg!(field.render(&mut canvas, palette[9], palette[8]); canvas.window(), GT);
+        msg!(basket.render(&mut canvas, palette[9], palette[8]); canvas.window(), GT);
 
         // score, highscore and timer
         msg!(surface.fill_rect(surface_size, surface_bg); canvas.window(), GT);
@@ -325,8 +334,8 @@ fn main() {
             let p2 = fp1 + coord!(fsx as i16, ss.y + fsy as i16 - BORDER) + 2 * BORDER;
             let p3 = p1 + BORDER;
             let p4 = p2 - BORDER;
-            msg!(render::fill_rounded_rect_new(&mut canvas, p1, p2, BIG_ROUND_RADIUS, palette[12]); canvas.window(), GT);
-            msg!(render::fill_rounded_rect_new(&mut canvas, p3, p4, BIG_ROUND_RADIUS, palette[8]); canvas.window(), GT);
+            msg!(render::fill_rounded_rect_new(&mut canvas, p1, p2, BIG_ROUND_RADIUS, BIG_ROUND_STEPS, palette[12].into()); canvas.window(), GT);
+            msg!(render::fill_rounded_rect_new(&mut canvas, p3, p4, BIG_ROUND_RADIUS, BIG_ROUND_STEPS, palette[8].into()); canvas.window(), GT);
             msg!(render::font(&mut surface, &font_big, fp1 - coord!(0, 5), palette[10], palette[8], GAME_OVER); canvas.window(), GT);
             for (index, text) in scores.iter().enumerate() {
                 let fp2 = fp1 + coord!(0, fsy as i16 + index as i16 * (ss.y / scores.len() as i16)) - coord!(0, BORDER);
@@ -336,8 +345,8 @@ fn main() {
         } else if gameover_flag && name_input_flag {
             // gameover input name
             let input_name = format!("{}{}", GAME_OVER_TEXT, user_name);
-            msg!(render::fill_rounded_rect_from(&mut canvas, &inf_texture_big, palette[12]); canvas.window(), GT);
-            msg!(render::fill_rounded_rect_from(&mut canvas, &inf_texture_small, palette[8]); canvas.window(), GT);
+            msg!(render::fill_rounded_rect_from(&mut canvas, &inf_texture_big, palette[12].into()); canvas.window(), GT);
+            msg!(render::fill_rounded_rect_from(&mut canvas, &inf_texture_small, palette[8].into()); canvas.window(), GT);
             msg!(render::font(&mut surface, &font_big, inf_fp1, palette[10], palette[8], GAME_OVER); canvas.window(), GT);
             msg!(render::font(&mut surface, &font, inf_fp2, palette[10], palette[8], &input_name); canvas.window(), GT);
         } else {
