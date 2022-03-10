@@ -75,7 +75,7 @@ impl Field {
     pub fn init_square(pole_size: u8, tile_size: u8, tile_sep: u8, radius: i16, pos: Coord) -> Field {
         // alloc all size tiles
         let mut textures = HashMap::new();
-        for i in (8..=32).step_by(2) {
+        for i in (8..=tile_size).step_by(2) {
             let block = build_rounded_rect(coord!(), coord!(i as i16), radius);
             textures.insert(i as i16, block);
         }
