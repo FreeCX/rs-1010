@@ -84,7 +84,7 @@ fn main() {
     }
 
     // add project info
-    let git_hash = include_str!(".git/ORIG_HEAD").trim();
+    let git_hash = &include_str!(".git/ORIG_HEAD").trim()[..9];
     let git_branch = include_str!(".git/HEAD").rsplitn(2, '/').next().unwrap_or("-").trim();
     let project_info = format!(
         "// project info\n\

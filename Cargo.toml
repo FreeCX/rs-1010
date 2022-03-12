@@ -1,6 +1,6 @@
 [package]
 name = "rs-1010"
-version = "0.9.0"
+version = "0.9.1"
 authors = ["Alexey Golubev <dr.freecx@gmail.com>"]
 edition = "2021"
 build = "build.rs"
@@ -29,4 +29,4 @@ rpath = false
 lto = true
 debug-assertions = false
 overflow-checks = false
-strip = true
+strip = "debuginfo"
