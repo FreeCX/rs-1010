@@ -293,7 +293,12 @@ impl Field {
                 // animated block
                 let tile = self.tile_size.x - 2 * shift_pos.x;
                 let data = self.textures[&tile].shift(position + shift_pos);
-                fill_rounded_rect_from(surface, &data, BlendColor::blend(color, bg_color))?;
+                let blend_color = if shift_pos.x > 0 {
+                    BlendColor::blend(color, empty_field_color)
+                } else {
+                    BlendColor::blend(color, bg_color)
+                };
+                fill_rounded_rect_from(surface, &data, blend_color)?;
             }
         }
         Ok(())
