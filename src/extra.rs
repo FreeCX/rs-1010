@@ -2,7 +2,7 @@ use sdl2::pixels::Color;
 use std::ops::{Add, Mul, Shr, Sub};
 use std::time::{Duration, SystemTimeError};
 
-use sdl2::rect::{Rect, Point};
+use sdl2::rect::{Point, Rect};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Coord {
@@ -13,7 +13,7 @@ pub struct Coord {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BlendColor {
     pub main: Color,
-    pub blend: Option<Color>
+    pub blend: Option<Color>,
 }
 
 #[derive(Clone)]

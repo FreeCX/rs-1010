@@ -27,7 +27,7 @@ pub const BLOCK_COST_MULTIPLIER: u32 = 5;
 pub const BASKET_COUNT: u8 = 3;
 pub const BASKET_SIZE: u8 = 5;
 pub const BASKET_SHIFT: u8 = 7;
-pub const BASKET_ROUND_STEPS: i16 = 8;
+pub const BASKET_ROUND_STEPS: i16 = 4;
 
 // filed params
 pub const FIELD_LEN: u8 = 10;
@@ -44,11 +44,9 @@ pub const TILE_SEP_2: u8 = 1;
 
 // game block round rect
 pub const ROUND_RADIUS: i16 = 8;
-pub const ROUND_STEPS: i16 = 20;
+pub const ROUND_STEPS: i16 = 10;
 
 // gameover round rect radius
-pub const BIG_ROUND_RADIUS: i16 = 20;
-pub const BIG_ROUND_STEPS: i16 = 50;
 pub const FIELD_WIDTH: u32 =
     FIELD_SHIFT as u32 + (TILE_SIZE_1 as u32 + TILE_SEP_1 as u32) * FIELD_LEN as u32 + FIELD_BASKET_SEP;
 pub const FIELD_HEIGHT: u32 = 2 * FIELD_SHIFT as u32 + (TILE_SIZE_1 as u32 + TILE_SEP_1 as u32) * FIELD_LEN as u32;

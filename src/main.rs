@@ -18,7 +18,6 @@ use sdl2::surface::Surface;
 use tini::Ini;
 
 use crate::consts::*;
-use crate::render::*;
 
 #[macro_use]
 mod extra;
@@ -247,15 +246,6 @@ fn main() {
         basket_shift,
     );
 
-    // prepare textures for input name form
-    let inf_ssy = (2 * FONT_MIN_SIZE) as i16;
-    let inf_fp1 = coord!((W_WIDTH as i16 - fsx as i16) >> 1, (W_HEIGHT as i16 - fsy as i16 - inf_ssy) >> 1);
-    let inf_fp2 = inf_fp1 + coord!(0, fsy as i16 - BORDER);
-    let inf_pos1 = inf_fp1 - 2 * BORDER;
-    let inf_pos2 = inf_fp1 + coord!(fsx as i16, inf_ssy + fsy as i16 - BORDER) + 2 * BORDER;
-    let inf_texture_big = build_rounded_rect(inf_pos1, inf_pos2, BIG_ROUND_STEPS, BIG_ROUND_RADIUS);
-    let inf_texture_small = build_rounded_rect(inf_pos1 + BORDER, inf_pos2 - BORDER, BIG_ROUND_STEPS, BIG_ROUND_RADIUS);
-
     // font rendering surface
     let surface_size = Rect::new(0, 0, W_WIDTH, W_HEIGHT);
     let mut surface = msg!(Surface::new(W_WIDTH, W_HEIGHT, pixel_fmt); canvas.window(), GT);
@@ -282,14 +272,6 @@ fn main() {
         save::deserialize(state, &palette[0], figures, &mut field, &mut basket, &mut score, &mut game_start);
         // update timer
         game_stop = game_start.elapsed();
-    }
-
-    for y in 0..field.field_size.y {
-        for x in 0..field.field_size.x {
-            if (x + y) % 2 == 0 {
-                field.set(coord!(x, y), palette[0]);
-            }
-        }
     }
 
     let mut event_pump = msg!(sdl_context.event_pump(); canvas.window(), GT);
@@ -334,8 +316,8 @@ fn main() {
             let p2 = fp1 + coord!(fsx as i16, ss.y + fsy as i16 - BORDER) + 2 * BORDER;
             let p3 = p1 + BORDER;
             let p4 = p2 - BORDER;
-            msg!(render::fill_rounded_rect_new(&mut canvas, p1, p2, BIG_ROUND_RADIUS, BIG_ROUND_STEPS, palette[12].into()); canvas.window(), GT);
-            msg!(render::fill_rounded_rect_new(&mut canvas, p3, p4, BIG_ROUND_RADIUS, BIG_ROUND_STEPS, palette[8].into()); canvas.window(), GT);
+            msg!(render::fill_rect(&mut canvas, p1, p2, palette[12]); canvas.window(), GT);
+            msg!(render::fill_rect(&mut canvas, p3, p4, palette[8]); canvas.window(), GT);
             msg!(render::font(&mut surface, &font_big, fp1 - coord!(0, 5), palette[10], palette[8], GAME_OVER); canvas.window(), GT);
             for (index, text) in scores.iter().enumerate() {
                 let fp2 = fp1 + coord!(0, fsy as i16 + index as i16 * (ss.y / scores.len() as i16)) - coord!(0, BORDER);
@@ -345,8 +327,18 @@ fn main() {
         } else if gameover_flag && name_input_flag {
             // gameover input name
             let input_name = format!("{}{}", GAME_OVER_TEXT, user_name);
-            msg!(render::fill_rounded_rect_from(&mut canvas, &inf_texture_big, palette[12].into()); canvas.window(), GT);
-            msg!(render::fill_rounded_rect_from(&mut canvas, &inf_texture_small, palette[8].into()); canvas.window(), GT);
+
+            // prepare textures for input name form
+            let inf_ssy = (2 * FONT_MIN_SIZE) as i16;
+            let inf_fp1 = coord!((W_WIDTH as i16 - fsx as i16) >> 1, (W_HEIGHT as i16 - fsy as i16 - inf_ssy) >> 1);
+            let inf_fp2 = inf_fp1 + coord!(0, fsy as i16 - BORDER);
+            let p1 = inf_fp1 - 2 * BORDER;
+            let p2 = inf_fp1 + coord!(fsx as i16, inf_ssy + fsy as i16 - BORDER) + 2 * BORDER;
+            let p3 = p1 + BORDER;
+            let p4 = p2 - BORDER;
+
+            msg!(render::fill_rect(&mut canvas, p1, p2, palette[12]); canvas.window(), GT);
+            msg!(render::fill_rect(&mut canvas, p3, p4, palette[8]); canvas.window(), GT);
             msg!(render::font(&mut surface, &font_big, inf_fp1, palette[10], palette[8], GAME_OVER); canvas.window(), GT);
             msg!(render::font(&mut surface, &font, inf_fp2, palette[10], palette[8], &input_name); canvas.window(), GT);
         } else {

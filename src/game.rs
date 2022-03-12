@@ -1,4 +1,3 @@
-
 use std::collections::{HashMap, HashSet};
 use std::mem;
 use std::time::SystemTime;
@@ -8,7 +7,7 @@ use sdl2::render::Canvas;
 use sdl2::video::Window;
 
 use crate::consts::{GET_COLOR_ERROR, SQR_SIZE};
-use crate::extra::{Coord, RectData, BlendColor};
+use crate::extra::{BlendColor, Coord, RectData};
 use crate::random::Random;
 use crate::render::*;
 
@@ -261,7 +260,9 @@ impl Field {
         }
     }
 
-    pub fn render(&self, surface: &mut Canvas<Window>, empty_field_color: Color, bg_color: Color) -> Result<(), String> {
+    pub fn render(
+        &self, surface: &mut Canvas<Window>, empty_field_color: Color, bg_color: Color,
+    ) -> Result<(), String> {
         for y in 0..self.field_size.y {
             for x in 0..self.field_size.x {
                 let pos = coord!(x, y);
@@ -380,7 +381,7 @@ impl Basket {
     }
 
     pub fn render(
-        &self, surface: &mut Canvas<Window>, texture: &RectData, empty_field_color: Color, bg_color: Color
+        &self, surface: &mut Canvas<Window>, texture: &RectData, empty_field_color: Color, bg_color: Color,
     ) -> Result<(), String> {
         let wsize = self.tile_size + self.tile_sep;
         let color = empty_field_color;
@@ -405,6 +406,7 @@ impl Basket {
 }
 
 impl BasketSystem {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         count: u8, field_size: u8, tile_size: u8, tile_sep: u8, steps: i16, radius: i16, pos: Coord, shift: Coord,
     ) -> BasketSystem {
@@ -485,7 +487,9 @@ impl BasketSystem {
         self.basket
     }
 
-    pub fn render(&self, surface: &mut Canvas<Window>, empty_field_color: Color, bg_color: Color) -> Result<(), String> {
+    pub fn render(
+        &self, surface: &mut Canvas<Window>, empty_field_color: Color, bg_color: Color,
+    ) -> Result<(), String> {
         for item in &self.basket {
             item.render(surface, &self.texture, empty_field_color, bg_color)?;
         }
