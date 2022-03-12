@@ -382,7 +382,7 @@ fn main() {
                     if name_input_flag {
                         match key {
                             Scancode::Return | Scancode::KpEnter => {
-                                let fixed_user_name = user_name.replace(",", " ").trim().to_string();
+                                let fixed_user_name = user_name.replace(',', " ").trim().to_string();
                                 // ignore empty user name
                                 if fixed_user_name.chars().count() == 0 {
                                     continue;
