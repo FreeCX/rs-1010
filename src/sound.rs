@@ -1,10 +1,11 @@
-#![allow(dead_code)]
-use sdl2::mixer::{Channel, Chunk, Music};
 use std::collections::HashMap;
+
+use sdl2::mixer::{Channel, Chunk, Music};
 
 pub enum MusicLoop {
     Once,
     Repeat,
+    #[allow(dead_code)]
     Count(i32),
 }
 
@@ -17,7 +18,6 @@ pub struct SoundSystem<'a> {
     enable_music: bool,
 }
 
-// TODO: redesign audio system
 impl<'a> SoundSystem<'a> {
     pub fn new() -> Self {
         SoundSystem {

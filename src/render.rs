@@ -77,8 +77,7 @@ pub fn build_rounded_rect(c1: Coord, c2: Coord, steps: i16, r: i16) -> RectData 
 
     // central rect
     if let Some(last) = rects.last() {
-        let center =
-            Rect::new(last.x, last.y + 1, last.w as u32, (size_y as i32 - last.y) as u32 - rects.len() as u32);
+        let center = Rect::new(last.x, last.y + 1, last.w as u32, (size_y as i32 - last.y) as u32 - rects.len() as u32);
         rects.push(center);
     }
 

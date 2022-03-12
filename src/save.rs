@@ -1,6 +1,8 @@
-use crate::game::{BasketSystem, Field, Figure};
-use sdl2::pixels::Color;
 use std::time::{Duration, SystemTime};
+
+use sdl2::pixels::Color;
+
+use crate::game::{BasketSystem, Field, Figure};
 
 const ALPHABET: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+~";
 const BLOCK_SIZE: usize = 6;
