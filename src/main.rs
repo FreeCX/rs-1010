@@ -346,21 +346,6 @@ fn main() {
             game_stop = game_start.elapsed();
         }
 
-        // render selected figure (if they catched)
-        if let Some(figure) = &current_figure {
-            let size_1 = coord!(TILE_SIZE_1 as i16);
-            let size_2 = coord!(TILE_SIZE_2 as i16);
-            let sep = coord!(TILE_SEP_1 as i16);
-            figure_pos = if field.is_point_in(&mouse_pos) && magnetization {
-                field.get_point_in(&mouse_pos, figure)
-            } else {
-                mouse_pos - size_2
-            };
-            // field already have this texture
-            let block_texture = &field.textures[&(TILE_SIZE_1 as i16)];
-            msg!(figure.render(&mut canvas, block_texture, figure_pos, size_1, sep, alpha_value); canvas.window(), GT);
-        }
-
         // events
         for event in event_pump.poll_iter() {
             match event {
@@ -466,6 +451,22 @@ fn main() {
 
         // draw last frame font
         msg!(render::surface_copy(&mut canvas, &surface); canvas.window(), GT);
+
+        // render selected figure (if they catched)
+        if let Some(figure) = &current_figure {
+            let size_1 = coord!(TILE_SIZE_1 as i16);
+            let size_2 = coord!(TILE_SIZE_2 as i16);
+            let sep = coord!(TILE_SEP_1 as i16);
+            figure_pos = if field.is_point_in(&mouse_pos) && magnetization {
+                field.get_point_in(&mouse_pos, figure)
+            } else {
+                mouse_pos - size_2
+            };
+            // field already have this texture
+            let block_texture = &field.textures[&(TILE_SIZE_1 as i16)];
+            msg!(figure.render(&mut canvas, block_texture, figure_pos, size_1, sep, alpha_value); canvas.window(), GT);
+        }
+
         canvas.present();
 
         // fps counter
