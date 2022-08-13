@@ -6,8 +6,8 @@ use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 
-use crate::consts::{GET_COLOR_ERROR, SQR_SIZE};
-use crate::extra::{BlendColor, Coord, RectData};
+use crate::consts::{FAKE_K, GET_COLOR_ERROR, SQR_SIZE};
+use crate::extra::{fake_contrast, BlendColor, Coord, RectData};
 use crate::random::Random;
 use crate::render::*;
 
@@ -75,7 +75,7 @@ impl Field {
     pub fn init_square(pole_size: u8, tile_size: u8, tile_sep: u8, steps: i16, radius: i16, pos: Coord) -> Field {
         // alloc all size tiles
         let mut textures = HashMap::new();
-        for i in (8..=tile_size).step_by(2) {
+        for i in (8..=tile_size + 2).step_by(2) {
             let block = build_rounded_rect(coord!(), coord!(i as i16), steps, radius);
             textures.insert(i as i16, block);
         }
@@ -260,24 +260,21 @@ impl Field {
         }
     }
 
-    pub fn render(
-        &self, surface: &mut Canvas<Window>, empty_field_color: Color, bg_color: Color,
-    ) -> Result<(), String> {
+    pub fn render(&self, surface: &mut Canvas<Window>, empty: Color, bg: Color) -> Result<(), String> {
         for y in 0..self.field_size.y {
             for x in 0..self.field_size.x {
                 let pos = coord!(x, y);
-                let color = if self.field.contains(&pos) {
-                    *self.colors.get(&pos).ok_or(GET_COLOR_ERROR)?
-                } else {
-                    empty_field_color
-                };
+                let color =
+                    if self.field.contains(&pos) { *self.colors.get(&pos).ok_or(GET_COLOR_ERROR)? } else { empty };
+                let fg = fake_contrast(color, FAKE_K);
+                let fbe = fake_contrast(empty, FAKE_K);
 
                 let position = pos * (self.tile_size + self.tile_sep) + self.pos;
                 // block shift size
                 let shift_pos = match &self.state {
                     State::Clear(p) => {
                         if self.clear.contains(&coord!(x, y)) {
-                            coord!(SQR_SIZE as i16 - *p as i16, SQR_SIZE as i16 - *p as i16)
+                            coord!(SQR_SIZE as i16 - *p as i16)
                         } else {
                             coord!()
                         }
@@ -285,20 +282,24 @@ impl Field {
                     State::Wait => coord!(),
                 };
 
-                // background block
-                if !shift_pos.is_zero() {
-                    let data = self.textures[&self.tile_size.x].shift(position);
-                    fill_rounded_rect_from(surface, &data, BlendColor::blend(empty_field_color, bg_color))?;
-                }
-                // animated block
-                let tile = self.tile_size.x - 2 * shift_pos.x;
-                let data = self.textures[&tile].shift(position + shift_pos);
-                let blend_color = if shift_pos.x > 0 {
-                    BlendColor::blend(color, empty_field_color)
+                let (shadow_color, blend_color) = if !shift_pos.is_zero() {
+                    // color in animation
+                    (fbe.into(), BlendColor::blend(color, empty))
                 } else {
-                    BlendColor::blend(color, bg_color)
+                    // color in static
+                    (BlendColor::blend(fg, bg), BlendColor::blend(color, fbe))
                 };
-                fill_rounded_rect_from(surface, &data, blend_color)?;
+
+                // draw shadow / field background
+                let data = self.textures[&(self.tile_size.x + 2)].shift(position);
+                fill_rounded_rect_from(surface, &data, shadow_color)?;
+
+                // draw only set figures
+                if self.field.contains(&pos) {
+                    let tile = self.tile_size.x - 2 * shift_pos.x;
+                    let data = self.textures[&tile].shift(position + shift_pos - 2_i16);
+                    fill_rounded_rect_from(surface, &data, blend_color)?;
+                }
             }
         }
         Ok(())
@@ -339,9 +340,14 @@ impl Figure {
         &self, surface: &mut Canvas<Window>, texture: &RectData, pos: Coord, size: Coord, sep: Coord, alpha: u8,
     ) -> Result<(), String> {
         let color = Color::RGBA(self.color.r, self.color.g, self.color.b, alpha);
+        let fake = fake_contrast(color, FAKE_K);
         for c in &self.blocks {
             let position = *c * (size + sep) + pos;
             let tex = texture.shift(position);
+            // draw shadow
+            fill_rounded_rect_from(surface, &tex, fake.into())?;
+            let tex = texture.shift(position - 2_i16);
+            // draw figure
             fill_rounded_rect_from(surface, &tex, color.into())?;
         }
         Ok(())
@@ -386,24 +392,30 @@ impl Basket {
     }
 
     pub fn render(
-        &self, surface: &mut Canvas<Window>, texture: &RectData, empty_field_color: Color, bg_color: Color,
+        &self, surface: &mut Canvas<Window>, texture: &RectData, empty: Color, bg: Color,
     ) -> Result<(), String> {
         let wsize = self.tile_size + self.tile_sep;
-        let color = empty_field_color;
+        let fake = fake_contrast(empty, FAKE_K);
         for y in 0..self.field_size.y {
             for x in 0..self.field_size.x {
                 let position = coord!(x, y) * wsize + self.pos;
+                // draw background
                 let tex = texture.shift(position);
-                fill_rounded_rect_from(surface, &tex, BlendColor::blend(color, bg_color))?;
+                fill_rounded_rect_from(surface, &tex, BlendColor::blend(fake, bg))?;
             }
         }
         if let Some(figure) = &self.figure {
             let color = figure.color;
+            let fake = fake_contrast(color, FAKE_K);
             let cen = self.centering(figure);
             for pos in &figure.blocks {
                 let position = (*pos + cen) * wsize + self.pos;
+                // draw shadow
                 let tex = texture.shift(position);
-                fill_rounded_rect_from(surface, &tex, BlendColor::blend(color, bg_color))?;
+                fill_rounded_rect_from(surface, &tex, BlendColor::blend(fake, bg))?;
+                // draw figure
+                let tex = texture.shift(position - 1_i16);
+                fill_rounded_rect_from(surface, &tex, BlendColor::blend(color, bg))?;
             }
         }
         Ok(())

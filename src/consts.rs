@@ -23,28 +23,25 @@ pub const MILLISECOND: u32 = 1000;
 pub const LINE_MULTIPLIER: u32 = 30;
 pub const BLOCK_COST_MULTIPLIER: u32 = 5;
 
+// filed params
+pub const FIELD_LEN: u8 = 10;
+pub const FIELD_SHIFT: i16 = 15;
+pub const FIELD_BASKET_SEP: u32 = 10;
+// game block round rect
+pub const ROUND_RADIUS: i16 = 8;
+pub const ROUND_STEPS: i16 = 10;
+// field tile size & separator
+pub const TILE_SIZE_1: u8 = 32;
+pub const TILE_SEP_1: u8 = 4;
+
 // basket params
 pub const BASKET_COUNT: u8 = 3;
 pub const BASKET_SIZE: u8 = 5;
 pub const BASKET_SHIFT: u8 = 7;
 pub const BASKET_ROUND_STEPS: i16 = 4;
-
-// filed params
-pub const FIELD_LEN: u8 = 10;
-pub const FIELD_SHIFT: i16 = 15;
-pub const FIELD_BASKET_SEP: u32 = 10;
-
-// field tile size & separator
-pub const TILE_SIZE_1: u8 = 32;
-pub const TILE_SEP_1: u8 = 4;
-
 // basket tile size & separator
 pub const TILE_SIZE_2: u8 = 18;
 pub const TILE_SEP_2: u8 = 1;
-
-// game block round rect
-pub const ROUND_RADIUS: i16 = 8;
-pub const ROUND_STEPS: i16 = 10;
 
 // gameover round rect radius
 pub const FIELD_WIDTH: u32 =
@@ -77,7 +74,7 @@ pub const BORDER: i16 = 6;
 pub const SQR_SIZE: u8 = 12;
 
 // default game colors
-pub const GAME_BACKGROUND_COLOR: (u8, u8, u8) = (100, 100, 100);
+pub const GAME_BACKGROUND_COLOR: (u8, u8, u8) = (110, 110, 110);
 pub const FIELD_BACKGROUND_COLOR: (u8, u8, u8) = (170, 170, 170);
 pub const FONT_ACOLOR: (u8, u8, u8) = (200, 200, 200);
 pub const FONT_BCOLOR: (u8, u8, u8) = (255, 255, 255);
@@ -90,6 +87,8 @@ pub const FIG_COLOR_05: (u8, u8, u8) = (100, 230, 200);
 pub const FIG_COLOR_06: (u8, u8, u8) = (100, 200, 230);
 pub const FIG_COLOR_07: (u8, u8, u8) = (100, 100, 230);
 pub const FIG_COLOR_08: (u8, u8, u8) = (210, 100, 230);
+//
+pub const FAKE_K: f32 = 0.5;
 
 // id for audio effects
 pub const SOUND_CLICK_ID: u8 = 0;

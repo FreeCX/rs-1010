@@ -230,3 +230,10 @@ impl BlendColor {
         BlendColor { main, blend: Some(Color::RGB(r, g, b)) }
     }
 }
+
+pub fn fake_contrast(a: Color, k: f32) -> Color {
+    let r = ((a.r as u16 + (255.0 * k).round() as u16) >> 2) as u8;
+    let g = ((a.g as u16 + (255.0 * k).round() as u16) >> 2) as u8;
+    let b = ((a.b as u16 + (255.0 * k).round() as u16) >> 2) as u8;
+    Color::RGBA(r, g, b, a.a)
+}

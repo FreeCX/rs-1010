@@ -1,6 +1,6 @@
 [package]
 name = "rs-1010"
-version = "0.9.1"
+version = "1.0.0"
 authors = ["Alexey Golubev <dr.freecx@gmail.com>"]
 edition = "2021"
 build = "build.rs"

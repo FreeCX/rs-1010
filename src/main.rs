@@ -67,7 +67,7 @@ fn main() {
     let basket_pos = coord!(FIELD_WIDTH as i16, FIELD_SHIFT + 3 * FONT_HEIGHT as i16);
     let basket_shift = coord!(0, BASKET_HEIGHT as i16);
     let field_pos = coord!(FIELD_SHIFT);
-    let score_pos = coord!(FIELD_WIDTH as i16 + 1, FIELD_SHIFT - 3);
+    let score_pos = coord!(FIELD_WIDTH as i16 + 3, FIELD_SHIFT - 3);
     let highscore_pos = score_pos + coord!(0, FONT_HEIGHT - 1);
     let timer_pos = highscore_pos + coord!(0, FONT_HEIGHT - 1);
     let mut mouse_pos = coord!();
