@@ -257,7 +257,9 @@ fn main() {
 
     // fps block
     let fps = config.get("game", "fps").unwrap_or(DEFAULT_FPS_PARAM);
-    let mut last_time = timer.ticks();
+    let target_delta = MILLISECOND / fps;
+    let mut last_tick = timer.ticks();
+    let mut current_delta = 0;
 
     // game timer
     let mut game_start = SystemTime::now();
@@ -276,6 +278,17 @@ fn main() {
 
     let mut event_pump = msg!(sdl_context.event_pump(); canvas.window(), GT);
     'running: loop {
+        // block fps at target
+        let current_tick = timer.ticks();
+        current_delta += current_tick - last_tick;
+        last_tick = current_tick;
+
+        if current_delta < target_delta {
+            // this is not very precise delay
+            timer.delay(target_delta - current_delta);
+            continue;
+        }
+
         canvas.set_draw_color(palette[8]);
         canvas.clear();
 
@@ -469,16 +482,8 @@ fn main() {
 
         canvas.present();
 
-        // fps counter
-        let current_time = timer.ticks();
-        let elapsed = current_time - last_time;
-        last_time = current_time;
-
-        // sleep
-        let sleep_time = if elapsed < MILLISECOND / fps { MILLISECOND / fps - elapsed } else { MILLISECOND / fps };
-        if sleep_time > 0 {
-            timer.delay(sleep_time);
-        }
+        // for new render cycle
+        current_delta = 0;
     }
 
     // save game state
