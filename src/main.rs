@@ -1,8 +1,4 @@
 #![windows_subsystem = "windows"]
-extern crate backtrace;
-extern crate sdl2;
-extern crate tini;
-
 use std::panic;
 use std::time::SystemTime;
 
@@ -64,7 +60,7 @@ fn main() {
     let mut score_table = score::ScoreTable::from_config(&config);
 
     // objects positions
-    let basket_pos = coord!(FIELD_WIDTH as i16, FIELD_SHIFT + 3 * FONT_HEIGHT as i16);
+    let basket_pos = coord!(FIELD_WIDTH as i16, FIELD_SHIFT + 3 * FONT_HEIGHT);
     let basket_shift = coord!(0, BASKET_HEIGHT as i16);
     let field_pos = coord!(FIELD_SHIFT);
     let score_pos = coord!(FIELD_WIDTH as i16 + 3, FIELD_SHIFT - 3);
@@ -85,7 +81,7 @@ fn main() {
 
     let window = video_subsystem.window(GT, W_WIDTH, W_HEIGHT).position_centered().build().expect(INIT_WINDOW_ERROR);
     let mut canvas = window.into_canvas().build().expect(GET_CANVAS_ERROR);
-    let mut timer = msg!(sdl_context.timer(); canvas.window(), GT);
+    let timer = msg!(sdl_context.timer(); canvas.window(), GT);
     let ttf_context = msg!(sdl2::ttf::init().map_err(|e| e.to_string()); canvas.window(), GT);
 
     // TODO: rewrite to Font struct
@@ -438,7 +434,7 @@ fn main() {
         }
 
         // refill baskets
-        if current_figure == None && !gameover_flag {
+        if current_figure.is_none() && !gameover_flag {
             basket.check_and_refill(figures);
         }
 
@@ -446,7 +442,7 @@ fn main() {
         highscore = highscore.max(score);
 
         // check gameover
-        if !field.can_set(basket.figures()) && current_figure == None {
+        if !field.can_set(basket.figures()) && current_figure.is_none() {
             if !gameover_flag && !name_input_flag {
                 audio.stop_music();
                 audio.play_music(MUSIC_GAMEOVER_ID, sound::MusicLoop::Once);

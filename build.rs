@@ -1,7 +1,3 @@
-extern crate chrono;
-#[cfg(windows)]
-extern crate winres;
-
 use std::collections::HashMap;
 use std::process::Command;
 use std::{fs::read_to_string, fs::File, io::Write};
@@ -77,7 +73,7 @@ fn main() {
     for (prefix, executable) in [("RUST", "rustc"), ("CARGO", "cargo")].iter() {
         let iterator = parse(execute(executable, &["-vV"]));
         for (k, v) in iterator {
-            let key = k.to_uppercase().replace('-', "_").replace(' ', "_");
+            let key = k.to_uppercase().replace(['-', ' '], "_");
             let fmt_str = format!("pub static {}_{}: &str = \"{}\";\n", prefix, key, v);
             source_code.push_str(&fmt_str);
         }

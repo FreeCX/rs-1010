@@ -483,7 +483,7 @@ impl BasketSystem {
 
     pub fn check_and_refill(&mut self, figures: &[Figure]) {
         for item in &self.basket {
-            if item.figure != None {
+            if item.figure.is_some() {
                 return;
             }
         }

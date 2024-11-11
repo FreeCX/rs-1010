@@ -6,7 +6,8 @@ edition = "2021"
 build = "build.rs"
 
 [dependencies.sdl2]
-version = "0.35"
+version = "0.37"
+default-features = false
 features = ["ttf", "mixer"]
 
 [dependencies]

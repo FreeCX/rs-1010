@@ -4,7 +4,7 @@ use std::{fs::File, io::Write};
 use crate::build;
 
 // handle panic and write crash repot to file
-pub fn panic_handler(panic_info: &panic::PanicInfo) {
+pub fn panic_handler(panic_info: &panic::PanicHookInfo) {
     let mut buffer = String::new();
 
     buffer.push_str(&format!(

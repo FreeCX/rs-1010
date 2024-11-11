@@ -104,7 +104,7 @@ pub fn deserialize(
     let time_range = score_range_right..score_range_right + 64;
 
     // restore field
-    for (index, item) in (&data[field_range]).chars().enumerate() {
+    for (index, item) in data[field_range].chars().enumerate() {
         let x = index as i16 % field.field_size.y;
         let y = index as i16 / field.field_size.y;
         if item == '1' {

@@ -32,7 +32,7 @@ macro_rules! figure {
 #[macro_export]
 macro_rules! coord {
     ($x:expr, $y:expr) => {
-        crate::extra::Coord { x: $x, y: $y }
+        $crate::extra::Coord { x: $x, y: $y }
     };
     ($xy:expr) => {
         coord!($xy, $xy)
