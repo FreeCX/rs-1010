@@ -87,16 +87,12 @@ fn main() {
         sdl_context.game_controller().unwrap_or_else(|_| subsystem_panic!(create; "controller"));
     let available =
         game_controller_subsystem.num_joysticks().unwrap_or_else(|_| subsystem_panic!(create; "controller"));
-    println!("Found {available} controllers");
     let _controller = (0..available).find_map(|id| {
         if !game_controller_subsystem.is_game_controller(id) {
             return None;
         }
         match game_controller_subsystem.open(id) {
-            Ok(c) => {
-                println!("{}", c.mapping());
-                Some(c)
-            }
+            Ok(c) => Some(c),
             Err(_) => None,
         }
     });
