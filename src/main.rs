@@ -61,12 +61,13 @@ fn main() {
     let mut score_table = score::ScoreTable::from_config(&config);
 
     // objects positions
-    let basket_pos = coord!(FIELD_WIDTH as i16, FIELD_SHIFT + 3 * FONT_HEIGHT);
+    let basket_pos = coord!(FIELD_WIDTH as i16, FIELD_SHIFT_HEIGHT + 4 * FONT_HEIGHT);
     let basket_shift = coord!(0, BASKET_HEIGHT as i16);
-    let field_pos = coord!(FIELD_SHIFT);
-    let score_pos = coord!(FIELD_WIDTH as i16 + 3, FIELD_SHIFT - 3);
+    let field_pos = coord!(FIELD_SHIFT_WIDTH, FIELD_SHIFT_HEIGHT);
+    let score_pos = coord!(FIELD_WIDTH as i16 + 3, FIELD_SHIFT_HEIGHT - 3);
     let highscore_pos = score_pos + coord!(0, FONT_HEIGHT - 1);
     let timer_pos = highscore_pos + coord!(0, FONT_HEIGHT - 1);
+    let separator_pos = timer_pos + coord!(0, FONT_HEIGHT - 1);
     let mut mouse_pos = coord!();
     let mut figure_pos = coord!();
 
@@ -299,6 +300,7 @@ fn main() {
         msg!(render::font(&mut surface, &font, score_pos, palette[10], palette[8], &format!("{:08}", score)); canvas.window(), GT);
         msg!(render::font(&mut surface, &font, highscore_pos, palette[10], palette[8], &format!("{:08}", highscore)); canvas.window(), GT);
         msg!(render::font(&mut surface, &font, timer_pos, palette[10], palette[8], &extra::as_time_str(&game_stop)); canvas.window(), GT);
+        msg!(render::font(&mut surface, &font, separator_pos, palette[10], palette[8], "————————"); canvas.window(), GT);
 
         if show_fps {
             msg!(render::font(&mut surface, &font, coord!(10), palette[10], palette[8], &format!("{fps}")); canvas.window(), GT);

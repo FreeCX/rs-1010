@@ -25,39 +25,41 @@ pub const BLOCK_COST_MULTIPLIER: u32 = 5;
 
 // filed params
 pub const FIELD_LEN: u8 = 10;
-pub const FIELD_SHIFT: i16 = 15;
+pub const FIELD_SHIFT_WIDTH: i16 = 210;
+pub const FIELD_SHIFT_HEIGHT: i16 = 60;
 pub const FIELD_BASKET_SEP: u32 = 10;
 // game block round rect
 pub const ROUND_RADIUS: i16 = 8;
-pub const ROUND_STEPS: i16 = 10;
+pub const ROUND_STEPS: i16 = 20;
 // field tile size & separator
-pub const TILE_SIZE_1: u8 = 32;
+pub const TILE_SIZE_1: u8 = 64;
 pub const TILE_SEP_1: u8 = 4;
 
 // basket params
 pub const BASKET_COUNT: u8 = 3;
 pub const BASKET_SIZE: u8 = 5;
 pub const BASKET_SHIFT: u8 = 7;
-pub const BASKET_ROUND_STEPS: i16 = 4;
+pub const BASKET_ROUND_STEPS: i16 = 8;
 // basket tile size & separator
-pub const TILE_SIZE_2: u8 = 18;
-pub const TILE_SEP_2: u8 = 1;
+pub const TILE_SIZE_2: u8 = 32;
+pub const TILE_SEP_2: u8 = 2;
 
 // gameover round rect radius
 pub const FIELD_WIDTH: u32 =
-    FIELD_SHIFT as u32 + (TILE_SIZE_1 as u32 + TILE_SEP_1 as u32) * FIELD_LEN as u32 + FIELD_BASKET_SEP;
-pub const FIELD_HEIGHT: u32 = 2 * FIELD_SHIFT as u32 + (TILE_SIZE_1 as u32 + TILE_SEP_1 as u32) * FIELD_LEN as u32;
+    FIELD_SHIFT_WIDTH as u32 + (TILE_SIZE_1 as u32 + TILE_SEP_1 as u32) * FIELD_LEN as u32 + FIELD_BASKET_SEP;
+pub const FIELD_HEIGHT: u32 =
+    2 * FIELD_SHIFT_HEIGHT as u32 + (TILE_SIZE_1 as u32 + TILE_SEP_1 as u32) * FIELD_LEN as u32;
 pub const BASKET_WIDTH: u32 = (TILE_SIZE_2 as u32 + TILE_SEP_2 as u32) * BASKET_SIZE as u32;
 pub const BASKET_HEIGHT: u32 = BASKET_WIDTH + BASKET_SHIFT as u32;
 
 // game window size
-pub const W_WIDTH: u32 = FIELD_WIDTH + BASKET_WIDTH + FIELD_SHIFT as u32 - TILE_SEP_2 as u32;
-pub const W_HEIGHT: u32 = FIELD_HEIGHT - TILE_SEP_1 as u32;
+pub const W_WIDTH: u32 = 1280;
+pub const W_HEIGHT: u32 = 800;
 
 // font consts
-pub const FONT_MIN_SIZE: u16 = 12;
-pub const FONT_DEF_SIZE: u16 = 18;
-pub const FONT_BIG_SIZE: u16 = 48;
+pub const FONT_MIN_SIZE: u16 = 16;
+pub const FONT_DEF_SIZE: u16 = 34;
+pub const FONT_BIG_SIZE: u16 = 64;
 pub const FONT_HEIGHT: i16 = FONT_DEF_SIZE as i16 + 2;
 
 // defaul game params
