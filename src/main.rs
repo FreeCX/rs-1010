@@ -327,6 +327,8 @@ fn main() {
             let mut scores = Vec::new();
             let mut ss = coord!();
             let mut curr_score = None;
+            let mut max_score_width = fsx;
+
             for (index, score::Score { name, score, time, last }) in
                 score_table.iter().take(GAMESCORE_COUNT).enumerate()
             {
@@ -342,16 +344,20 @@ fn main() {
                 let (ssx, ssy) = msg!(font_min.size_of(&score); canvas.window(), GT);
                 ss.y += ssy as i16;
                 ss.x = ss.x.max(ssx as i16);
+                max_score_width = max_score_width.max(font_min.size_of(&score).unwrap_or((0, 0)).0);
                 scores.push(score);
             }
-            let fp1 = coord!((W_WIDTH as i16 - fsx as i16) >> 1, (W_HEIGHT as i16 - fsy as i16 - ss.y) >> 1);
+
+            let fp1 =
+                coord!((W_WIDTH as i16 - max_score_width as i16) >> 1, (W_HEIGHT as i16 - fsy as i16 - ss.y) >> 1);
             let p1 = fp1 - 2 * BORDER;
-            let p2 = fp1 + coord!(fsx as i16, ss.y + fsy as i16 - BORDER) + 2 * BORDER;
+            let p2 = fp1 + coord!(max_score_width as i16, ss.y + fsy as i16 - BORDER) + 2 * BORDER;
             let p3 = p1 + BORDER;
             let p4 = p2 - BORDER;
+
             msg!(render::fill_rect(&mut canvas, p1, p2, palette[12]); canvas.window(), GT);
             msg!(render::fill_rect(&mut canvas, p3, p4, palette[8]); canvas.window(), GT);
-            msg!(render::font(&mut surface, &font_big, fp1 - coord!(0, 5), palette[10], palette[8], GAME_OVER); canvas.window(), GT);
+            msg!(render::font(&mut surface, &font_big, fp1 - coord!(-10, 5), palette[10], palette[8], GAME_OVER); canvas.window(), GT);
             for (index, text) in scores.iter().enumerate() {
                 let fp2 = fp1 + coord!(0, fsy as i16 + index as i16 * (ss.y / scores.len() as i16)) - coord!(0, BORDER);
                 let fcolor = if Some(index) == curr_score { palette[11] } else { palette[10] };
@@ -362,7 +368,7 @@ fn main() {
             let input_name = format!("{}{}", GAME_OVER_TEXT, user_name);
 
             // prepare textures for input name form
-            let inf_ssy = (2 * FONT_MIN_SIZE) as i16;
+            let inf_ssy = (3 * FONT_MIN_SIZE) as i16;
             let inf_fp1 = coord!((W_WIDTH as i16 - fsx as i16) >> 1, (W_HEIGHT as i16 - fsy as i16 - inf_ssy) >> 1);
             let inf_fp2 = inf_fp1 + coord!(0, fsy as i16 - BORDER);
             let p1 = inf_fp1 - 2 * BORDER;
