@@ -2,6 +2,7 @@
 use std::panic;
 use std::time::SystemTime;
 
+use sdl2::controller::{Axis, Button};
 use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::mixer::{InitFlag, AUDIO_S16LSB, DEFAULT_CHANNELS};
@@ -80,6 +81,25 @@ fn main() {
         .unwrap_or_else(|_| subsystem_panic!(open; "audio device"));
     let _mixer_context = sdl2::mixer::init(InitFlag::all()).unwrap_or_else(|_| subsystem_panic!(create; "mixer"));
     sdl2::mixer::allocate_channels(4);
+
+    // configure controller
+    let game_controller_subsystem =
+        sdl_context.game_controller().unwrap_or_else(|_| subsystem_panic!(create; "controller"));
+    let available =
+        game_controller_subsystem.num_joysticks().unwrap_or_else(|_| subsystem_panic!(create; "controller"));
+    println!("Found {available} controllers");
+    let _controller = (0..available).find_map(|id| {
+        if !game_controller_subsystem.is_game_controller(id) {
+            return None;
+        }
+        match game_controller_subsystem.open(id) {
+            Ok(c) => {
+                println!("{}", c.mapping());
+                Some(c)
+            }
+            Err(_) => None,
+        }
+    });
 
     let window = video_subsystem.window(GT, W_WIDTH, W_HEIGHT).position_centered().build().expect(INIT_WINDOW_ERROR);
     let mut canvas = window.into_canvas().build().expect(GET_CANVAS_ERROR);
@@ -366,12 +386,19 @@ fn main() {
         // events
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit { .. } | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'running,
+                // exit the game
+                Event::Quit { .. }
+                | Event::KeyDown { keycode: Some(Keycode::Escape), .. }
+                | Event::ControllerButtonDown { button: Button::Back, .. } => break 'running,
+
+                // add user name to score table
                 Event::TextInput { text, .. } => {
                     if name_input_flag && user_name.chars().count() < MAX_NAME_SIZE {
                         user_name.push_str(&text);
                     }
                 }
+
+                // input user name
                 Event::KeyDown { scancode: Some(key), .. } => {
                     if name_input_flag {
                         match key {
@@ -394,10 +421,13 @@ fn main() {
                         }
                     }
                 }
-                Event::MouseMotion { x, y, .. } => {
-                    mouse_pos = coord!(x as i16, y as i16);
-                }
-                Event::MouseButtonDown { mouse_btn: MouseButton::Left, x, y, .. } => {
+
+                // store current mouse position
+                Event::MouseMotion { x, y, .. } => mouse_pos = coord!(x as i16, y as i16),
+
+                // figure set/return to basket
+                Event::ControllerAxisMotion { axis: Axis::TriggerRight, value: AXIS_MAX, .. }
+                | Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => {
                     if gameover_flag && !name_input_flag {
                         // restart game
                         game_start = SystemTime::now();
@@ -410,7 +440,6 @@ fn main() {
                     if gameover_flag {
                         continue;
                     }
-                    // figure set | return
                     current_figure = match current_figure {
                         Some(ref figure) => {
                             audio.play_sfx(SFX_CLACK_ID);
@@ -423,7 +452,7 @@ fn main() {
                             None
                         }
                         None => {
-                            let item = basket.get(coord!(x as i16, y as i16));
+                            let item = basket.get(mouse_pos);
                             if item.is_some() {
                                 audio.play_sfx(SFX_CLICK_ID);
                             }
@@ -431,6 +460,19 @@ fn main() {
                         }
                     };
                 }
+
+                // return figure to basket
+                Event::ControllerAxisMotion { axis: Axis::TriggerLeft, value: AXIS_MAX, .. } => {
+                    current_figure = match current_figure {
+                        Some(figure) => {
+                            audio.play_sfx(SFX_CLACK_ID);
+                            basket.ret(figure);
+                            None
+                        }
+                        other => other,
+                    };
+                }
+
                 _ => {}
             }
         }

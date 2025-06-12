@@ -93,6 +93,9 @@ pub const FIG_COLOR_08: &[u8; 3] = &[210, 100, 230];
 //
 pub const FAKE_K: f32 = 0.5;
 
+// controller stuff
+pub const AXIS_MAX: i16 = i16::MAX;
+
 // id for audio effects
 pub const SFX_CLICK_ID: u8 = 0;
 pub const SFX_CLACK_ID: u8 = 1;
