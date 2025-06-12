@@ -27,18 +27,18 @@ mod render;
 mod save;
 mod score;
 
-fn v_as_color(config: &Ini, section: &str, param: &str, default: (u8, u8, u8)) -> Color {
+fn v_as_color(config: &Ini, section: &str, param: &str, default: &[u8; 3]) -> Color {
     let color = match config.get_vec::<u8>(section, param) {
         Some(value) => {
             match value[..] {
                 // suport only RGB24
-                [r, g, b] => (r, g, b),
+                [r, g, b] => &[r, g, b],
                 _ => default,
             }
         }
         None => default,
     };
-    Color::RGBA(color.0, color.1, color.2, 255)
+    Color::RGBA(color[0], color[1], color[2], 255)
 }
 
 fn main() {
@@ -57,6 +57,7 @@ fn main() {
     let alpha_value = config.get("game", "alpha").unwrap_or(DEFAULT_ALPHA_PARAM);
     let cfg_user_name = config.get("game", "username").unwrap_or_else(|| DEFAULT_USER_NAME.to_string());
     let ask_username = config.get("game", "ask_username").unwrap_or_else(|| cfg_user_name == DEFAULT_USER_NAME);
+    let show_fps = config.get("game", "show_fps").unwrap_or(DEFAULT_SHOW_FPS);
     let mut score_table = score::ScoreTable::from_config(&config);
 
     // objects positions
@@ -298,6 +299,10 @@ fn main() {
         msg!(render::font(&mut surface, &font, score_pos, palette[10], palette[8], &format!("{:08}", score)); canvas.window(), GT);
         msg!(render::font(&mut surface, &font, highscore_pos, palette[10], palette[8], &format!("{:08}", highscore)); canvas.window(), GT);
         msg!(render::font(&mut surface, &font, timer_pos, palette[10], palette[8], &extra::as_time_str(&game_stop)); canvas.window(), GT);
+
+        if show_fps {
+            msg!(render::font(&mut surface, &font, coord!(10), palette[10], palette[8], &format!("{fps}")); canvas.window(), GT);
+        }
 
         if gameover_flag && !name_input_flag {
             // highscore table

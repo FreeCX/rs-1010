@@ -62,11 +62,12 @@ pub const FONT_HEIGHT: i16 = FONT_DEF_SIZE as i16 + 2;
 
 // defaul game params
 pub const DEFAULT_HIGHSCORE_AT_START: bool = false;
-pub const DEFAULT_USER_NAME: &str = "unknown";
+pub const DEFAULT_USER_NAME: &str = "user";
 pub const DEFAULT_MAGNET_PARAM: bool = true;
 pub const DEFAULT_BLEND: bool = true;
 pub const DEFAULT_ALPHA_PARAM: u8 = 150;
 pub const DEFAULT_FPS_PARAM: u32 = 60;
+pub const DEFAULT_SHOW_FPS: bool = false;
 
 // other
 pub const MAX_NAME_SIZE: usize = 14;
@@ -74,19 +75,19 @@ pub const BORDER: i16 = 6;
 pub const SQR_SIZE: u8 = 12;
 
 // default game colors
-pub const GAME_BACKGROUND_COLOR: (u8, u8, u8) = (110, 110, 110);
-pub const FIELD_BACKGROUND_COLOR: (u8, u8, u8) = (170, 170, 170);
-pub const FONT_ACOLOR: (u8, u8, u8) = (200, 200, 200);
-pub const FONT_BCOLOR: (u8, u8, u8) = (255, 255, 255);
-pub const BORDER_COLOR: (u8, u8, u8) = (210, 210, 210);
-pub const FIG_COLOR_01: (u8, u8, u8) = (230, 100, 100);
-pub const FIG_COLOR_02: (u8, u8, u8) = (230, 210, 100);
-pub const FIG_COLOR_03: (u8, u8, u8) = (100, 230, 100);
-pub const FIG_COLOR_04: (u8, u8, u8) = (230, 100, 200);
-pub const FIG_COLOR_05: (u8, u8, u8) = (100, 230, 200);
-pub const FIG_COLOR_06: (u8, u8, u8) = (100, 200, 230);
-pub const FIG_COLOR_07: (u8, u8, u8) = (100, 100, 230);
-pub const FIG_COLOR_08: (u8, u8, u8) = (210, 100, 230);
+pub const GAME_BACKGROUND_COLOR: &[u8; 3] = &[110, 110, 110];
+pub const FIELD_BACKGROUND_COLOR: &[u8; 3] = &[170, 170, 170];
+pub const FONT_ACOLOR: &[u8; 3] = &[200, 200, 200];
+pub const FONT_BCOLOR: &[u8; 3] = &[255, 255, 255];
+pub const BORDER_COLOR: &[u8; 3] = &[210, 210, 210];
+pub const FIG_COLOR_01: &[u8; 3] = &[230, 100, 100];
+pub const FIG_COLOR_02: &[u8; 3] = &[230, 210, 100];
+pub const FIG_COLOR_03: &[u8; 3] = &[100, 230, 100];
+pub const FIG_COLOR_04: &[u8; 3] = &[230, 100, 200];
+pub const FIG_COLOR_05: &[u8; 3] = &[100, 230, 200];
+pub const FIG_COLOR_06: &[u8; 3] = &[100, 200, 230];
+pub const FIG_COLOR_07: &[u8; 3] = &[100, 100, 230];
+pub const FIG_COLOR_08: &[u8; 3] = &[210, 100, 230];
 //
 pub const FAKE_K: f32 = 0.5;
 
@@ -117,12 +118,13 @@ pub fn default_config() -> Ini {
         .section("score")
         .items(vec![("users", ""), ("scores", ""), ("times", "")])
         .section("game")
-        .item("show_highscore_at_start", false)
-        .item("magnetization", false)
-        .item("blend", true)
-        .item("alpha", 150)
-        .item("fps", 60)
-        .item("username", "user")
+        .item("show_highscore_at_start", DEFAULT_HIGHSCORE_AT_START)
+        .item("magnetization", DEFAULT_MAGNET_PARAM)
+        .item("blend", DEFAULT_BLEND)
+        .item("alpha", DEFAULT_ALPHA_PARAM)
+        .item("fps", DEFAULT_FPS_PARAM)
+        .item("show_fps", DEFAULT_SHOW_FPS)
+        .item("username", DEFAULT_USER_NAME)
         .item("ask_username", true)
         .section("audio")
         .item("enable_sfx", DEFAULT_SFX_ENABLE)
@@ -130,19 +132,19 @@ pub fn default_config() -> Ini {
         .item("enable_music", DEFAULT_MUSIC_ENABLE)
         .item("volume_music", DEFAULT_MUSIC_VOLUME)
         .section("color")
-        .item_vec("game_background", &[100, 100, 100])
-        .item_vec("field_background", &[170, 170, 170])
-        .item_vec("font", &[200, 200, 200])
-        .item_vec("light", &[255, 255, 255])
-        .item_vec("border", &[210, 210, 210])
-        .item_vec("fig1", &[230, 100, 100])
-        .item_vec("fig2", &[230, 210, 100])
-        .item_vec("fig3", &[100, 230, 100])
-        .item_vec("fig4", &[230, 100, 200])
-        .item_vec("fig5", &[100, 230, 200])
-        .item_vec("fig6", &[100, 200, 230])
-        .item_vec("fig7", &[100, 100, 230])
-        .item_vec("fig8", &[210, 100, 230])
+        .item_vec("game_background", GAME_BACKGROUND_COLOR)
+        .item_vec("field_background", FIELD_BACKGROUND_COLOR)
+        .item_vec("font", FONT_ACOLOR)
+        .item_vec("light", FONT_BCOLOR)
+        .item_vec("border", BORDER_COLOR)
+        .item_vec("fig1", FIG_COLOR_01)
+        .item_vec("fig2", FIG_COLOR_02)
+        .item_vec("fig3", FIG_COLOR_03)
+        .item_vec("fig4", FIG_COLOR_04)
+        .item_vec("fig5", FIG_COLOR_05)
+        .item_vec("fig6", FIG_COLOR_06)
+        .item_vec("fig7", FIG_COLOR_07)
+        .item_vec("fig8", FIG_COLOR_08)
 }
 
 #[macro_export]
