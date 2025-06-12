@@ -17,6 +17,7 @@ use crate::consts::*;
 
 #[macro_use]
 mod extra;
+mod audio;
 mod build;
 mod consts;
 mod game;
@@ -25,7 +26,6 @@ mod random;
 mod render;
 mod save;
 mod score;
-mod sound;
 
 fn v_as_color(config: &Ini, section: &str, param: &str, default: (u8, u8, u8)) -> Color {
     let color = match config.get_vec::<u8>(section, param) {
@@ -93,16 +93,16 @@ fn main() {
     let pixel_fmt = PixelFormatEnum::RGBA32;
 
     // configure audio system
-    let mut audio = sound::SoundSystem::new();
-    audio.set_sound_status(config.get("audio", "enable_sound").unwrap_or(DEFAULT_SOUND_ENABLE));
+    let mut audio = audio::AudioSystem::new();
+    audio.set_sfx_status(config.get("audio", "enable_sfx").unwrap_or(DEFAULT_SFX_ENABLE));
     audio.set_music_status(config.get("audio", "enable_music").unwrap_or(DEFAULT_MUSIC_ENABLE));
-    audio.set_sound_volume(config.get("audio", "volume_sound").unwrap_or(DEFAULT_SOUND_VOLUME));
+    audio.set_sfx_volume(config.get("audio", "volume_sound").unwrap_or(DEFAULT_SFX_VOLUME));
     audio.set_music_volume(config.get("audio", "volume_music").unwrap_or(DEFAULT_MUSIC_VOLUME));
     // and load all audio
-    audio.batch_load_sound(SOUND_TRACKS);
+    audio.batch_load_sfx(SFX_TRACKS);
     audio.batch_load_music(MUSIC_TRACKS);
     // start playing bg music
-    audio.play_music(MUSIC_BG_ID, sound::MusicLoop::Repeat);
+    audio.play_music(MUSIC_BG_ID, audio::MusicLoop::Repeat);
 
     // game palette
     let palette = [
@@ -397,7 +397,7 @@ fn main() {
                         gameover_flag = false;
                         score = 0;
                         // start playing bg music
-                        audio.play_music(MUSIC_BG_ID, sound::MusicLoop::Repeat);
+                        audio.play_music(MUSIC_BG_ID, audio::MusicLoop::Repeat);
                         continue;
                     }
                     if gameover_flag {
@@ -406,7 +406,7 @@ fn main() {
                     // figure set | return
                     current_figure = match current_figure {
                         Some(ref figure) => {
-                            audio.play_sound(SOUND_CLACK_ID);
+                            audio.play_sfx(SFX_CLACK_ID);
                             let sel_pos = if magnetization { figure_pos } else { mouse_pos };
                             if !field.set_figure(&sel_pos, figure) {
                                 basket.ret(figure.clone());
@@ -418,7 +418,7 @@ fn main() {
                         None => {
                             let item = basket.get(coord!(x as i16, y as i16));
                             if item.is_some() {
-                                audio.play_sound(SOUND_CLICK_ID);
+                                audio.play_sfx(SFX_CLICK_ID);
                             }
                             item
                         }
@@ -430,7 +430,7 @@ fn main() {
 
         // calculate score
         if let Some(lines) = field.next_state() {
-            audio.play_sound(SOUND_CLEAR_ID);
+            audio.play_sfx(SFX_CLEAR_ID);
             score += (lines.x + lines.y + lines.x * lines.y) * LINE_MULTIPLIER;
         }
 
@@ -446,7 +446,7 @@ fn main() {
         if !field.can_set(basket.figures()) && current_figure.is_none() {
             if !gameover_flag && !name_input_flag {
                 audio.stop_music();
-                audio.play_music(MUSIC_GAMEOVER_ID, sound::MusicLoop::Once);
+                audio.play_music(MUSIC_GAMEOVER_ID, audio::MusicLoop::Once);
                 name_input_flag = true;
             }
             // autoset username to score table

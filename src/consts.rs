@@ -91,14 +91,14 @@ pub const FIG_COLOR_08: (u8, u8, u8) = (210, 100, 230);
 pub const FAKE_K: f32 = 0.5;
 
 // id for audio effects
-pub const SOUND_CLICK_ID: u8 = 0;
-pub const SOUND_CLACK_ID: u8 = 1;
-pub const SOUND_CLEAR_ID: u8 = 2;
+pub const SFX_CLICK_ID: u8 = 0;
+pub const SFX_CLACK_ID: u8 = 1;
+pub const SFX_CLEAR_ID: u8 = 2;
 // batch effect block
-pub const SOUND_TRACKS: [(u8, &str); 3] = [
-    (SOUND_CLICK_ID, "./resources/click.ogg"),
-    (SOUND_CLACK_ID, "./resources/clack.ogg"),
-    (SOUND_CLEAR_ID, "./resources/clear.ogg"),
+pub const SFX_TRACKS: [(u8, &str); 3] = [
+    (SFX_CLICK_ID, "./resources/click.ogg"),
+    (SFX_CLACK_ID, "./resources/clack.ogg"),
+    (SFX_CLEAR_ID, "./resources/clear.ogg"),
 ];
 // background music info
 pub const MUSIC_BG_ID: u8 = 0;
@@ -106,9 +106,9 @@ pub const MUSIC_GAMEOVER_ID: u8 = 1;
 pub const MUSIC_TRACKS: [(u8, &str); 2] =
     [(MUSIC_BG_ID, "./resources/background.mp3"), (MUSIC_GAMEOVER_ID, "./resources/gameover.mp3")];
 // audio system default values
-pub const DEFAULT_SOUND_VOLUME: u8 = 128;
+pub const DEFAULT_SFX_VOLUME: u8 = 20;
 pub const DEFAULT_MUSIC_VOLUME: u8 = 128;
-pub const DEFAULT_SOUND_ENABLE: bool = true;
+pub const DEFAULT_SFX_ENABLE: bool = true;
 pub const DEFAULT_MUSIC_ENABLE: bool = true;
 
 // ... you know what it is
@@ -125,10 +125,10 @@ pub fn default_config() -> Ini {
         .item("username", "user")
         .item("ask_username", true)
         .section("audio")
-        .item("enable_sound", true)
-        .item("enable_music", true)
-        .item("volume_sound", 20)
-        .item("volume_music", 128)
+        .item("enable_sfx", DEFAULT_SFX_ENABLE)
+        .item("volume_sfx", DEFAULT_SFX_VOLUME)
+        .item("enable_music", DEFAULT_MUSIC_ENABLE)
+        .item("volume_music", DEFAULT_MUSIC_VOLUME)
         .section("color")
         .item_vec("game_background", &[100, 100, 100])
         .item_vec("field_background", &[170, 170, 170])
