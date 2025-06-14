@@ -193,6 +193,10 @@ impl Field {
         false
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.field.is_empty()
+    }
+
     pub fn clear(&mut self) {
         self.state = State::Clear(TILE_CLEAN_ANIMATION_SIZE);
         self.lines = Lines::empty();

@@ -322,7 +322,7 @@ fn main() {
             msg!(render::font(&mut surface, &font, coord!(10), palette[10], palette[8], &format!("{fps}")); canvas.window(), GT);
         }
 
-        if gameover_flag && !name_input_flag {
+        if gameover_flag && !name_input_flag && field.is_empty() {
             // highscore table
             let mut scores = Vec::new();
             let mut ss = coord!();
