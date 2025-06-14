@@ -6,7 +6,7 @@ use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 
-use crate::consts::{FAKE_K, GET_COLOR_ERROR, SQR_SIZE};
+use crate::consts::{FAKE_K, GET_COLOR_ERROR, TILE_CLEAN_ANIMATION_SIZE};
 use crate::extra::{fake_contrast, BlendColor, Coord, RectData};
 use crate::random::Random;
 use crate::render::*;
@@ -194,7 +194,7 @@ impl Field {
     }
 
     pub fn clear(&mut self) {
-        self.state = State::Clear(SQR_SIZE);
+        self.state = State::Clear(TILE_CLEAN_ANIMATION_SIZE);
         self.lines = Lines::empty();
         self.clear = Blocks::new();
 
@@ -218,7 +218,7 @@ impl Field {
                 for x in 0..self.field_size.x {
                     if let Some(true) = self.check_line_v(x as u8) {
                         for y in 0..self.field_size.y {
-                            self.update_state(x, y, SQR_SIZE);
+                            self.update_state(x, y, TILE_CLEAN_ANIMATION_SIZE);
                         }
                         self.lines.x += 1;
                     }
@@ -227,7 +227,7 @@ impl Field {
                 for y in 0..self.field_size.y {
                     if let Some(true) = self.check_line_h(y as u8) {
                         for x in 0..self.field_size.x {
-                            self.update_state(x, y, SQR_SIZE);
+                            self.update_state(x, y, TILE_CLEAN_ANIMATION_SIZE);
                         }
                         self.lines.y += 1;
                     }
@@ -274,7 +274,7 @@ impl Field {
                 let shift_pos = match &self.state {
                     State::Clear(p) => {
                         if self.clear.contains(&coord!(x, y)) {
-                            coord!(SQR_SIZE as i16 - *p as i16)
+                            coord!(TILE_CLEAN_ANIMATION_SIZE as i16 - *p as i16)
                         } else {
                             coord!()
                         }

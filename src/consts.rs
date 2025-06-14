@@ -74,7 +74,8 @@ pub const DEFAULT_SHOW_FPS: bool = false;
 // other
 pub const MAX_NAME_SIZE: usize = 14;
 pub const BORDER: i16 = 6;
-pub const SQR_SIZE: u8 = 12;
+pub const MINIMAL_TILE_SIZE: u8 = 4;
+pub const TILE_CLEAN_ANIMATION_SIZE: u8 = (TILE_SIZE_1 / 2) - MINIMAL_TILE_SIZE;
 
 // default game colors
 pub const GAME_BACKGROUND_COLOR: &[u8; 3] = &[110, 110, 110];
