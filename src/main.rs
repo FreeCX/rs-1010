@@ -294,6 +294,11 @@ fn main() {
         game_stop = game_start.elapsed();
     }
 
+    // disable highscore screen
+    if !field.is_empty() {
+        show_highscore_at_start = false;
+    }
+
     let mut event_pump = msg!(sdl_context.event_pump(); canvas.window(), GT);
     'running: loop {
         // block fps at target
