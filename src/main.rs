@@ -237,7 +237,9 @@ fn main() {
     let mut highscore = score_table.get_highscore();
     let mut score: u32 = 0;
     // game over params
-    let mut gameover_flag = config.get("game", "show_highscore_at_start").unwrap_or(DEFAULT_HIGHSCORE_AT_START);
+    let mut gameover_flag = false;
+    let mut show_highscore_at_start =
+        config.get("game", "show_highscore_at_start").unwrap_or(DEFAULT_HIGHSCORE_AT_START);
     let mut user_name = String::new();
     // rendering params
     let (fsx, fsy) = msg!(font_big.size_of(GAME_OVER); canvas.window(), GT);
@@ -323,7 +325,7 @@ fn main() {
             msg!(render::font(&mut surface, &font, coord!(10), palette[10], palette[8], &format!("{fps}")); canvas.window(), GT);
         }
 
-        if gameover_flag && !name_input_flag && field.is_empty() {
+        if (gameover_flag | show_highscore_at_start) && !name_input_flag && field.is_empty() {
             // highscore table
             let mut scores = Vec::new();
             let mut ss = coord!();
@@ -431,6 +433,10 @@ fn main() {
                 // figure set/return to basket
                 Event::ControllerAxisMotion { axis: Axis::TriggerRight, value: AXIS_MAX, .. }
                 | Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => {
+                    if show_highscore_at_start {
+                        game_start = SystemTime::now();
+                        show_highscore_at_start = false;
+                    }
                     if gameover_flag && !name_input_flag {
                         // restart game
                         game_start = SystemTime::now();
