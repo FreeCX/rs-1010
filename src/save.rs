@@ -59,7 +59,7 @@ pub fn deserialize(
     // restore figures
     for index in 0..BASKET_COUNT as usize {
         let fig_num = decoder.take::<usize>(SERDE_FIGURE_SIZE)?;
-        if index > 0 {
+        if fig_num > 0 {
             basket.set(index, figures[fig_num - 1].clone());
         } else {
             basket.pop(index);

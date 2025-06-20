@@ -285,11 +285,11 @@ fn main() {
 
     // restore game state
     if let Some(state) = config.get::<String>("game", "state") {
+        // deserialize
+        save::deserialize(state, &palette[0], figures, &mut field, &mut basket, &mut score, &mut game_start);
         // remove state from config (ignore errors)
         config = config.section("game").erase("state");
         let _ = config.to_file(CONFIG_FILE);
-        // deserialize
-        save::deserialize(state, &palette[0], figures, &mut field, &mut basket, &mut score, &mut game_start);
         // update timer
         game_stop = game_start.elapsed();
     }
