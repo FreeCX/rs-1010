@@ -20,6 +20,7 @@ use crate::consts::*;
 mod extra;
 mod audio;
 mod build;
+mod codec;
 mod consts;
 mod game;
 mod handler;
