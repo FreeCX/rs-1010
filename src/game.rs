@@ -117,6 +117,10 @@ impl Field {
         norm * (self.tile_size + self.tile_sep) + self.pos
     }
 
+    pub fn get_color(&self, pos: &Coord) -> Option<&Color> {
+        self.colors.get(pos)
+    }
+
     pub fn is_point_in(&self, pos: &Coord) -> bool {
         let v = (*pos - self.pos).floor_frac(self.tile_size + self.tile_sep);
         v.x >= 0 && v.x < self.field_size.x && v.y >= 0 && v.y < self.field_size.y

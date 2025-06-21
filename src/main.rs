@@ -286,7 +286,7 @@ fn main() {
     // restore game state
     if let Some(state) = config.get::<String>("game", "state") {
         // deserialize
-        save::deserialize(state, &palette[0], figures, &mut field, &mut basket, &mut score, &mut game_start);
+        save::deserialize(state, &palette, figures, &mut field, &mut basket, &mut score, &mut game_start);
         // remove state from config (ignore errors)
         config = config.section("game").erase("state");
         let _ = config.to_file(CONFIG_FILE);
@@ -548,7 +548,7 @@ fn main() {
 
     // save game state
     if score > 0 && !gameover_flag && !name_input_flag {
-        let state = save::serialize(field, basket, score, game_start);
+        let state = save::serialize(&palette, field, basket, score, game_start);
         config = config.section("game").item("state", state);
     }
 

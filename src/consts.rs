@@ -78,12 +78,14 @@ pub const MINIMAL_TILE_SIZE: u8 = 4;
 pub const TILE_CLEAN_ANIMATION_SIZE: u8 = (TILE_SIZE_1 / 2) - MINIMAL_TILE_SIZE;
 
 // serde bits
-pub const SERDE_TOTAL_SIZE: usize = 36;
 pub const SERDE_FIELD_SIZE: u8 = 1;
 pub const SERDE_FIGURE_SIZE: u8 = 5;
 pub const SERDE_SCORE_SIZE: u8 = 32;
 pub const SERDE_TIME_SIZE: u8 = 64;
 pub const SERDE_PADDING_SIZE: u8 = 5;
+pub const SERDE_V2_SUPPORT: u8 = 0b10101;
+pub const SERDE_COLOR: u8 = 8;
+pub const SERDE_POS: u8 = 4;
 
 // default game colors
 pub const GAME_BACKGROUND_COLOR: &[u8; 3] = &[110, 110, 110];
