@@ -1,8 +1,8 @@
 use std::ops::{Add, Mul, Shr, Sub};
-use std::time::{Duration, SystemTimeError};
 
 use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
+use tini::Ini;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Coord {
@@ -229,4 +229,18 @@ pub fn fake_contrast(a: Color, k: f32) -> Color {
     let g = ((a.g as u16 + (255.0 * k).round() as u16) >> 2) as u8;
     let b = ((a.b as u16 + (255.0 * k).round() as u16) >> 2) as u8;
     Color::RGBA(r, g, b, a.a)
+}
+
+pub fn v_as_color(config: &Ini, section: &str, param: &str, default: &[u8; 3]) -> Color {
+    let color = match config.get_vec::<u8>(section, param) {
+        Some(value) => {
+            match value[..] {
+                // suport only RGB24
+                [r, g, b] => &[r, g, b],
+                _ => default,
+            }
+        }
+        None => default,
+    };
+    Color::RGBA(color[0], color[1], color[2], 255)
 }

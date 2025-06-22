@@ -15,6 +15,7 @@ use tini::Ini;
 
 use crate::consts::*;
 use crate::game::{GameState, GameTime};
+use crate::extra::v_as_color;
 
 #[macro_use]
 mod extra;
@@ -28,20 +29,6 @@ mod random;
 mod render;
 mod save;
 mod score;
-
-fn v_as_color(config: &Ini, section: &str, param: &str, default: &[u8; 3]) -> Color {
-    let color = match config.get_vec::<u8>(section, param) {
-        Some(value) => {
-            match value[..] {
-                // suport only RGB24
-                [r, g, b] => &[r, g, b],
-                _ => default,
-            }
-        }
-        None => default,
-    };
-    Color::RGBA(color[0], color[1], color[2], 255)
-}
 
 fn main() {
     // handle panics
