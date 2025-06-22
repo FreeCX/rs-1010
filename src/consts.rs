@@ -3,6 +3,7 @@ use tini::Ini;
 // game strings
 pub const GAME_OVER_TEXT: &str = "your name: ";
 pub const GAME_OVER: &str = "GAME OVER";
+pub const GAME_PAUSE: &str = "PAUSED";
 pub const GT: &str = "1010";
 
 // errors

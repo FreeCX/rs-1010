@@ -1,6 +1,5 @@
 #![windows_subsystem = "windows"]
 use std::panic;
-use std::time::SystemTime;
 
 use sdl2::controller::{Axis, Button};
 use sdl2::event::Event;
@@ -15,6 +14,7 @@ use sdl2::surface::Surface;
 use tini::Ini;
 
 use crate::consts::*;
+use crate::game::{GameState, GameTime};
 
 #[macro_use]
 mod extra;
@@ -236,14 +236,10 @@ fn main() {
     // game scores
     let mut highscore = score_table.get_highscore();
     let mut score: u32 = 0;
-    // game over params
-    let mut gameover_flag = false;
-    let mut show_highscore_at_start =
-        config.get("game", "show_highscore_at_start").unwrap_or(DEFAULT_HIGHSCORE_AT_START);
+    // for username input
     let mut user_name = String::new();
     // rendering params
     let (fsx, fsy) = msg!(font_big.size_of(GAME_OVER); canvas.window(), GT);
-    let mut name_input_flag = false;
 
     // turn on alpha channel
     if config.get("game", "blend").unwrap_or(DEFAULT_BLEND) {
@@ -279,25 +275,24 @@ fn main() {
     let mut last_tick = timer.ticks();
     let mut current_delta = 0;
 
-    // game timer
-    let mut game_start = SystemTime::now();
-    let mut game_stop = game_start.elapsed();
+    let mut game_time = GameTime::new();
 
     // restore game state
     if let Some(state) = config.get::<String>("game", "state") {
         // deserialize
-        save::deserialize(state, &palette, figures, &mut field, &mut basket, &mut score, &mut game_start);
+        save::deserialize(state, &palette, figures, &mut field, &mut basket, &mut score, &mut game_time);
         // remove state from config (ignore errors)
         config = config.section("game").erase("state");
         let _ = config.to_file(CONFIG_FILE);
-        // update timer
-        game_stop = game_start.elapsed();
     }
 
-    // disable highscore screen
-    if !field.is_empty() {
-        show_highscore_at_start = false;
-    }
+    // game stuff
+    let mut game_state =
+        if config.get("game", "show_highscore_at_start").unwrap_or(DEFAULT_HIGHSCORE_AT_START) && field.is_empty() {
+            GameState::HighscoreTable
+        } else {
+            GameState::Idle
+        };
 
     let mut event_pump = msg!(sdl_context.event_pump(); canvas.window(), GT);
     'running: loop {
@@ -315,22 +310,27 @@ fn main() {
         canvas.set_draw_color(palette[8]);
         canvas.clear();
 
-        // field and basket
-        msg!(field.render(&mut canvas, palette[9], palette[8]); canvas.window(), GT);
-        msg!(basket.render(&mut canvas, palette[9], palette[8]); canvas.window(), GT);
-
-        // score, highscore and timer
+        // clear surface
         msg!(surface.fill_rect(surface_size, surface_bg); canvas.window(), GT);
-        msg!(render::font(&mut surface, &font, score_pos, palette[10], palette[8], &format!("{:08}", score)); canvas.window(), GT);
-        msg!(render::font(&mut surface, &font, highscore_pos, palette[10], palette[8], &format!("{:08}", highscore)); canvas.window(), GT);
-        msg!(render::font(&mut surface, &font, timer_pos, palette[10], palette[8], &extra::as_time_str(&game_stop)); canvas.window(), GT);
-        msg!(render::font(&mut surface, &font, separator_pos, palette[10], palette[8], "————————"); canvas.window(), GT);
+
+        if game_state != GameState::Pause {
+            // field and basket
+            msg!(field.render(&mut canvas, palette[9], palette[8]); canvas.window(), GT);
+            msg!(basket.render(&mut canvas, palette[9], palette[8]); canvas.window(), GT);
+
+            // score, highscore and timer
+            msg!(render::font(&mut surface, &font, score_pos, palette[10], palette[8], &format!("{:08}", score)); canvas.window(), GT);
+            msg!(render::font(&mut surface, &font, highscore_pos, palette[10], palette[8], &format!("{:08}", highscore)); canvas.window(), GT);
+            msg!(render::font(&mut surface, &font, timer_pos, palette[10], palette[8], &game_time.format()); canvas.window(), GT);
+            msg!(render::font(&mut surface, &font, separator_pos, palette[10], palette[8], "————————"); canvas.window(), GT);
+        }
 
         if show_fps {
             msg!(render::font(&mut surface, &font, coord!(10), palette[10], palette[8], &format!("{fps}")); canvas.window(), GT);
         }
 
-        if (gameover_flag | show_highscore_at_start) && !name_input_flag && field.is_empty() {
+        // show highscore table
+        if game_state == GameState::HighscoreTable {
             // highscore table
             let mut scores = Vec::new();
             let mut ss = coord!();
@@ -371,7 +371,10 @@ fn main() {
                 let fcolor = if Some(index) == curr_score { palette[11] } else { palette[10] };
                 msg!(render::font(&mut surface, &font_min, fp2, fcolor, palette[8], text); canvas.window(), GT);
             }
-        } else if gameover_flag && name_input_flag {
+        }
+
+        // input username
+        if game_state == GameState::UsernameInput {
             // gameover input name
             let input_name = format!("{}{}", GAME_OVER_TEXT, user_name);
 
@@ -388,9 +391,18 @@ fn main() {
             msg!(render::fill_rect(&mut canvas, p3, p4, palette[8]); canvas.window(), GT);
             msg!(render::font(&mut surface, &font_big, inf_fp1, palette[10], palette[8], GAME_OVER); canvas.window(), GT);
             msg!(render::font(&mut surface, &font, inf_fp2, palette[10], palette[8], &input_name); canvas.window(), GT);
-        } else {
-            // stop game timer
-            game_stop = game_start.elapsed();
+        }
+
+        // pause screen
+        if game_state == GameState::Pause {
+            let (size_x, size_y) = msg!(font_big.size_of(GAME_PAUSE); canvas.window(), GT);
+            let center = coord!((W_WIDTH - size_x) as i16 / 2, (W_HEIGHT - size_y) as i16 / 2);
+            msg!(render::font(&mut surface, &font_big, center, palette[10], palette[8], GAME_PAUSE); canvas.window(), GT);
+        }
+
+        // update game timer
+        if game_state == GameState::Idle {
+            game_time.tick();
         }
 
         // events
@@ -403,14 +415,14 @@ fn main() {
 
                 // add user name to score table
                 Event::TextInput { text, .. } => {
-                    if name_input_flag && user_name.chars().count() < MAX_NAME_SIZE {
+                    if game_state == GameState::UsernameInput && user_name.chars().count() < MAX_NAME_SIZE {
                         user_name.push_str(&text);
                     }
                 }
 
                 // input user name
                 Event::KeyDown { scancode: Some(key), .. } => {
-                    if name_input_flag {
+                    if game_state == GameState::UsernameInput {
                         match key {
                             Scancode::Return | Scancode::KpEnter => {
                                 let fixed_user_name = user_name.replace(',', " ").trim().to_string();
@@ -418,15 +430,36 @@ fn main() {
                                 if fixed_user_name.chars().count() == 0 {
                                     continue;
                                 }
-                                score_table.push(fixed_user_name, score, extra::as_time_str(&game_stop));
+                                score_table.push(fixed_user_name, score, game_time.format());
                                 user_name.clear();
-                                name_input_flag = false;
+                                game_state = GameState::HighscoreTable;
                                 field.clear();
                                 basket.clear();
                             }
                             Scancode::Backspace => {
                                 user_name.pop();
                             }
+                            _ => (),
+                        }
+                    }
+
+                    if key == Scancode::Space {
+                        match game_state {
+                            GameState::Idle => {
+                                game_state = GameState::Pause;
+                                game_time.pause();
+
+                                // revert figure to basket
+                                current_figure = match current_figure {
+                                    Some(figure) => {
+                                        audio.play_sfx(SFX_CLACK_ID);
+                                        basket.ret(figure);
+                                        None
+                                    }
+                                    other => other,
+                                };
+                            }
+                            GameState::Pause => game_state = GameState::Idle,
                             _ => (),
                         }
                     }
@@ -438,53 +471,58 @@ fn main() {
                 // figure set/return to basket
                 Event::ControllerAxisMotion { axis: Axis::TriggerRight, value: AXIS_MAX, .. }
                 | Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => {
-                    if show_highscore_at_start {
-                        game_start = SystemTime::now();
-                        show_highscore_at_start = false;
+                    // HighscoreTable -> Idle
+                    if game_state == GameState::HighscoreTable {
+                        game_state = GameState::Idle;
                     }
-                    if gameover_flag && !name_input_flag {
+
+                    // GameOver -> Idle
+                    if game_state == GameState::GameOver {
                         // restart game
-                        game_start = SystemTime::now();
-                        gameover_flag = false;
+                        game_time.reset();
+                        game_state = GameState::Idle;
                         score = 0;
                         // start playing bg music
                         audio.play_music(MUSIC_BG_ID, audio::MusicLoop::Repeat);
                         continue;
                     }
-                    if gameover_flag {
-                        continue;
+
+                    // take figure
+                    if game_state == GameState::Idle {
+                        current_figure = match current_figure {
+                            Some(ref figure) => {
+                                audio.play_sfx(SFX_CLACK_ID);
+                                let sel_pos = if magnetization { figure_pos } else { mouse_pos };
+                                if !field.set_figure(&sel_pos, figure) {
+                                    basket.ret(figure.clone());
+                                } else {
+                                    score += figure.blocks() * BLOCK_COST_MULTIPLIER;
+                                }
+                                None
+                            }
+                            None => {
+                                let item = basket.get(mouse_pos);
+                                if item.is_some() {
+                                    audio.play_sfx(SFX_CLICK_ID);
+                                }
+                                item
+                            }
+                        };
                     }
-                    current_figure = match current_figure {
-                        Some(ref figure) => {
-                            audio.play_sfx(SFX_CLACK_ID);
-                            let sel_pos = if magnetization { figure_pos } else { mouse_pos };
-                            if !field.set_figure(&sel_pos, figure) {
-                                basket.ret(figure.clone());
-                            } else {
-                                score += figure.blocks() * BLOCK_COST_MULTIPLIER;
-                            }
-                            None
-                        }
-                        None => {
-                            let item = basket.get(mouse_pos);
-                            if item.is_some() {
-                                audio.play_sfx(SFX_CLICK_ID);
-                            }
-                            item
-                        }
-                    };
                 }
 
                 // return figure to basket
                 Event::ControllerAxisMotion { axis: Axis::TriggerLeft, value: AXIS_MAX, .. } => {
-                    current_figure = match current_figure {
-                        Some(figure) => {
-                            audio.play_sfx(SFX_CLACK_ID);
-                            basket.ret(figure);
-                            None
-                        }
-                        other => other,
-                    };
+                    if game_state == GameState::Idle {
+                        current_figure = match current_figure {
+                            Some(figure) => {
+                                audio.play_sfx(SFX_CLACK_ID);
+                                basket.ret(figure);
+                                None
+                            }
+                            other => other,
+                        };
+                    }
                 }
 
                 _ => {}
@@ -498,7 +536,7 @@ fn main() {
         }
 
         // refill baskets
-        if current_figure.is_none() && !gameover_flag {
+        if current_figure.is_none() && game_state == GameState::Idle {
             basket.check_and_refill(figures);
         }
 
@@ -507,19 +545,18 @@ fn main() {
 
         // check gameover
         if !field.can_set(basket.figures()) && current_figure.is_none() {
-            if !gameover_flag && !name_input_flag {
+            if game_state == GameState::Idle {
                 audio.stop_music();
                 audio.play_music(MUSIC_GAMEOVER_ID, audio::MusicLoop::Once);
-                name_input_flag = true;
+                game_state = GameState::UsernameInput;
             }
             // autoset username to score table
-            if !ask_username && name_input_flag {
-                score_table.push(cfg_user_name.clone(), score, extra::as_time_str(&game_stop));
-                name_input_flag = false;
+            if !ask_username && game_state == GameState::UsernameInput {
+                score_table.push(cfg_user_name.clone(), score, game_time.format());
                 field.clear();
                 basket.clear();
             }
-            gameover_flag = true;
+            game_state = GameState::GameOver;
         }
 
         // draw last frame font
@@ -547,8 +584,8 @@ fn main() {
     }
 
     // save game state
-    if score > 0 && !gameover_flag && !name_input_flag {
-        let state = save::serialize(&palette, field, basket, score, game_start);
+    if score > 0 && game_state == GameState::Idle || game_state == GameState::Pause {
+        let state = save::serialize(&palette, field, basket, score, &mut game_time);
         config = config.section("game").item("state", state);
     }
 

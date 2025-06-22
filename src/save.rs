@@ -1,13 +1,11 @@
-use std::time::{Duration, SystemTime};
-
 use sdl2::pixels::Color;
 
 use crate::codec::{Decoder, Encoder};
 use crate::consts::*;
+use crate::game::GameTime;
 use crate::game::{BasketSystem, Field, Figure};
 
-pub fn serialize(palette: &[Color], field: Field, bsystem: BasketSystem, score: u32, time: SystemTime) -> String {
-    let duration = time.elapsed().unwrap_or_else(|_| Duration::from_secs(0)).as_secs();
+pub fn serialize(palette: &[Color], field: Field, bsystem: BasketSystem, score: u32, game_time: &GameTime) -> String {
     let mut encoder = Encoder::new();
 
     let mut color_data = Vec::new();
@@ -40,7 +38,7 @@ pub fn serialize(palette: &[Color], field: Field, bsystem: BasketSystem, score: 
     encoder.push(score, SERDE_SCORE_SIZE);
 
     // Current game time
-    encoder.push(duration as i64, SERDE_TIME_SIZE);
+    encoder.push(game_time.elapsed_seconds() as i64, SERDE_TIME_SIZE);
 
     // Padding
     encoder.push(SERDE_V2_SUPPORT, SERDE_PADDING_SIZE);
@@ -58,7 +56,7 @@ pub fn serialize(palette: &[Color], field: Field, bsystem: BasketSystem, score: 
 
 pub fn deserialize(
     data: String, palette: &[Color], figures: &[Figure], field: &mut Field, basket: &mut BasketSystem, score: &mut u32,
-    time: &mut SystemTime,
+    game_time: &mut GameTime,
 ) -> Option<()> {
     let mut decoder = Decoder::decode(&data)?;
 
@@ -85,10 +83,8 @@ pub fn deserialize(
     *score = decoder.take(SERDE_SCORE_SIZE)?;
 
     // restore elapsed time
-    let raw_time = decoder.take(SERDE_TIME_SIZE)?;
-    let duration = Duration::from_secs(raw_time);
-    let current = SystemTime::now();
-    *time = current.checked_sub(duration).unwrap_or(current);
+    let elapsed = decoder.take::<u64>(SERDE_TIME_SIZE)?;
+    game_time.update(elapsed);
 
     let padding = decoder.take::<u8>(SERDE_PADDING_SIZE)?;
     // load extra info about field colors

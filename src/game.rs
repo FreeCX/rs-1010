@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::mem;
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
 use sdl2::pixels::Color;
 use sdl2::render::Canvas;
@@ -12,6 +12,20 @@ use crate::random::Random;
 use crate::render::*;
 
 type Blocks = HashSet<Coord>;
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum GameState {
+    Idle,
+    Pause,
+    UsernameInput,
+    HighscoreTable,
+    GameOver,
+}
+
+pub struct GameTime {
+    elapsed: Duration,
+    time: Option<SystemTime>,
+}
 
 #[derive(Clone, Copy)]
 pub struct Lines {
@@ -59,6 +73,45 @@ pub struct BasketSystem {
     current: Option<usize>,
     rnd: Random,
     texture: RectData,
+}
+
+impl GameTime {
+    pub fn new() -> GameTime {
+        GameTime { elapsed: Duration::from_secs(0), time: None }
+    }
+
+    fn update_elapsed(&mut self) {
+        self.elapsed += self.time.and_then(|time| time.elapsed().ok()).unwrap_or(Duration::from_secs(0));
+    }
+
+    pub fn tick(&mut self) {
+        self.update_elapsed();
+        self.time = Some(SystemTime::now());
+    }
+
+    pub fn pause(&mut self) {
+        self.update_elapsed();
+        self.time = None;
+    }
+
+    pub fn reset(&mut self) {
+        self.elapsed = Duration::from_secs(0);
+        self.time = Some(SystemTime::now());
+    }
+
+    pub fn update(&mut self, seconds: u64) {
+        self.elapsed += Duration::from_secs(seconds);
+    }
+
+    pub fn elapsed_seconds(&self) -> u64 {
+        self.elapsed.as_secs()
+    }
+
+    pub fn format(&self) -> String {
+        let seconds = self.elapsed_seconds();
+        let (hours, minutes, seconds) = (seconds / (60 * 60), (seconds / 60) % 60, seconds % 60);
+        format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
+    }
 }
 
 impl Lines {
