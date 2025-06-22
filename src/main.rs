@@ -268,9 +268,6 @@ fn main() {
     if let Some(state) = config.get::<String>("game", "state") {
         // deserialize
         save::deserialize(state, &palette, figures, &mut field, &mut basket, &mut score, &mut game_time);
-        // remove state from config (ignore errors)
-        config = config.section("game").erase("state");
-        let _ = config.to_file(CONFIG_FILE);
     }
 
     // game stuff

@@ -191,6 +191,7 @@ impl Decoder {
         Some(result)
     }
 
+    #[allow(dead_code)]
     pub fn skip(&mut self, size: usize) {
         self.byte += size / BYTE_SIZE;
         self.bit += size % BYTE_SIZE;
