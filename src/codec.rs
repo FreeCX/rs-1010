@@ -64,9 +64,9 @@ impl Decoder {
         let mut buffer = Vec::with_capacity(data.len() * BLOCK_SIZE / BYTE_SIZE);
 
         for block in data.as_bytes().chunks(4) {
-            match &block[..] {
+            match block[..] {
                 // | aaaaaabb | bbbbcccc | ccdddddd |
-                &[a, b, c, d] => {
+                [a, b, c, d] => {
                     let a = index(a);
                     let b = index(b);
                     let c = index(c);
@@ -77,7 +77,7 @@ impl Decoder {
                     buffer.push(((c & 0b11) << 6) + d)
                 }
                 // | aaaaaabb | bbbbcccc | cc..... .|
-                &[a, b, c] => {
+                [a, b, c] => {
                     let a = index(a);
                     let b = index(b);
                     let c = index(c);
@@ -87,7 +87,7 @@ impl Decoder {
                     buffer.push(c & 0b11);
                 }
                 // | aaaaaabb | bbbb.... |
-                &[a, b] => {
+                [a, b] => {
                     let a = index(a);
                     let b = index(b);
 
@@ -95,7 +95,7 @@ impl Decoder {
                     buffer.push((b & 0b1111) << 4);
                 }
                 // | aaaaaa.. |
-                &[a] => buffer.push(index(a) << 2),
+                [a] => buffer.push(index(a) << 2),
                 _ => unreachable!(),
             }
         }
@@ -107,7 +107,7 @@ impl Decoder {
     where
         T: Default + AddAssign<T> + ShlAssign<usize> + From<u8> + Copy,
     {
-        for byte in self.buffer.iter().skip(self.byte).take(count as usize) {
+        for byte in self.buffer.iter().skip(self.byte).take(count) {
             current <<= BYTE_SIZE - 1;
             current += T::from(*byte);
         }

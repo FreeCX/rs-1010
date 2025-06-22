@@ -79,10 +79,7 @@ fn main() {
         if !game_controller_subsystem.is_game_controller(id) {
             return None;
         }
-        match game_controller_subsystem.open(id) {
-            Ok(c) => Some(c),
-            Err(_) => None,
-        }
+        game_controller_subsystem.open(id).ok()
     });
 
     let window = video_subsystem.window(GT, W_WIDTH, W_HEIGHT).position_centered().build().expect(INIT_WINDOW_ERROR);
@@ -558,7 +555,7 @@ fn main() {
 
     // save game state
     if score > 0 && game_state == GameState::Idle || game_state == GameState::Pause {
-        let state = save::serialize(&palette, field, basket, score, &mut game_time);
+        let state = save::serialize(&palette, field, basket, score, &game_time);
         config = config.section("game").item("state", state);
     }
 

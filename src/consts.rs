@@ -48,8 +48,6 @@ pub const TILE_SEP_2: u8 = 2;
 // gameover round rect radius
 pub const FIELD_WIDTH: u32 =
     FIELD_SHIFT_WIDTH as u32 + (TILE_SIZE_1 as u32 + TILE_SEP_1 as u32) * FIELD_LEN as u32 + FIELD_BASKET_SEP;
-pub const FIELD_HEIGHT: u32 =
-    2 * FIELD_SHIFT_HEIGHT as u32 + (TILE_SIZE_1 as u32 + TILE_SEP_1 as u32) * FIELD_LEN as u32;
 pub const BASKET_WIDTH: u32 = (TILE_SIZE_2 as u32 + TILE_SEP_2 as u32) * BASKET_SIZE as u32;
 pub const BASKET_HEIGHT: u32 = BASKET_WIDTH + BASKET_SHIFT as u32;
 
