@@ -6,7 +6,7 @@ use sdl2::pixels::Color;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 
-use crate::consts::{FAKE_K, GET_COLOR_ERROR, TILE_CLEAN_ANIMATION_SIZE};
+use crate::consts::{FAKE_K, GET_COLOR_ERROR, MILLISECOND, TILE_CLEAN_ANIMATION_SIZE};
 use crate::extra::{fake_contrast, BlendColor, Coord, RectData};
 use crate::random::Random;
 use crate::render::*;
@@ -25,6 +25,12 @@ pub enum GameState {
 pub struct GameTime {
     elapsed: Duration,
     time: Option<SystemTime>,
+}
+
+pub struct FPSLimiter {
+    target_delta: u32,
+    current_delta: u32,
+    last_ticks: u32,
 }
 
 #[derive(Clone, Copy)]
@@ -111,6 +117,30 @@ impl GameTime {
         let seconds = self.elapsed_seconds();
         let (hours, minutes, seconds) = (seconds / (60 * 60), (seconds / 60) % 60, seconds % 60);
         format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
+    }
+}
+
+impl FPSLimiter {
+    pub fn new(fps: u32, ticks: u32) -> FPSLimiter {
+        FPSLimiter { target_delta: MILLISECOND / fps, current_delta: 0, last_ticks: ticks }
+    }
+
+    pub fn wait_time(&self) -> Option<u32> {
+        if self.current_delta < self.target_delta {
+            // this is not very precise delay
+            Some(self.target_delta - self.current_delta)
+        } else {
+            None
+        }
+    }
+
+    pub fn update(&mut self, ticks: u32) {
+        self.current_delta += ticks - self.last_ticks;
+        self.last_ticks = ticks;
+    }
+
+    pub fn reset(&mut self) {
+        self.current_delta = 0;
     }
 }
 

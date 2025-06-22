@@ -14,8 +14,8 @@ use sdl2::surface::Surface;
 use tini::Ini;
 
 use crate::consts::*;
-use crate::game::{GameState, GameTime};
 use crate::extra::v_as_color;
+use crate::game::{FPSLimiter, GameState, GameTime};
 
 #[macro_use]
 mod extra;
@@ -256,12 +256,8 @@ fn main() {
     // fill basket by random figures
     basket.rnd_fill(figures);
 
-    // fps block
     let fps = config.get("game", "fps").unwrap_or(DEFAULT_FPS_PARAM);
-    let target_delta = MILLISECOND / fps;
-    let mut last_tick = timer.ticks();
-    let mut current_delta = 0;
-
+    let mut fps_limiter = FPSLimiter::new(fps, timer.ticks());
     let mut game_time = GameTime::new();
 
     // restore game state
@@ -280,14 +276,9 @@ fn main() {
 
     let mut event_pump = msg!(sdl_context.event_pump(); canvas.window(), GT);
     'running: loop {
-        // block fps at target
-        let current_tick = timer.ticks();
-        current_delta += current_tick - last_tick;
-        last_tick = current_tick;
-
-        if current_delta < target_delta {
-            // this is not very precise delay
-            timer.delay(target_delta - current_delta);
+        fps_limiter.update(timer.ticks());
+        if let Some(delay) = fps_limiter.wait_time() {
+            timer.delay(delay);
             continue;
         }
 
@@ -562,9 +553,7 @@ fn main() {
         }
 
         canvas.present();
-
-        // for new render cycle
-        current_delta = 0;
+        fps_limiter.reset();
     }
 
     // save game state
