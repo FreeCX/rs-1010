@@ -302,7 +302,7 @@ fn main() {
         }
 
         // show highscore table
-        if game_state == GameState::HighscoreTable {
+        if game_state == GameState::HighscoreTable || game_state == GameState::GameOver {
             // highscore table
             let mut scores = Vec::new();
             let mut ss = coord!();
@@ -404,7 +404,7 @@ fn main() {
                                 }
                                 score_table.push(fixed_user_name, score, game_time.format());
                                 user_name.clear();
-                                game_state = GameState::HighscoreTable;
+                                game_state = GameState::GameOver;
                                 field.clear();
                                 basket.clear();
                             }
@@ -527,8 +527,8 @@ fn main() {
                 score_table.push(cfg_user_name.clone(), score, game_time.format());
                 field.clear();
                 basket.clear();
+                game_state = GameState::GameOver;
             }
-            game_state = GameState::GameOver;
         }
 
         // draw last frame font
