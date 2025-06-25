@@ -15,7 +15,7 @@ use tini::Ini;
 
 use crate::consts::*;
 use crate::extra::v_as_color;
-use crate::game::{FPSLimiter, GameState, GameTime};
+use crate::game::{FPSLimiter, Figure, GameState, GameTime};
 
 #[macro_use]
 mod extra;
@@ -423,24 +423,7 @@ fn main() {
                     }
 
                     if key == Scancode::Space {
-                        match game_state {
-                            GameState::Idle => {
-                                game_state = GameState::Pause;
-                                game_time.pause();
-
-                                // revert figure to basket
-                                current_figure = match current_figure {
-                                    Some(figure) => {
-                                        audio.play_sfx(SFX_CLACK_ID);
-                                        basket.ret(figure);
-                                        None
-                                    }
-                                    other => other,
-                                };
-                            }
-                            GameState::Pause => game_state = GameState::Idle,
-                            _ => (),
-                        }
+                        process_pause(&mut game_state, &mut current_figure, &mut basket, &mut game_time, &audio);
                     }
                 }
 
@@ -490,18 +473,14 @@ fn main() {
                     }
                 }
 
-                // return figure to basket
                 Event::ControllerAxisMotion { axis: Axis::TriggerLeft, value: AXIS_MAX, .. } => {
                     if game_state == GameState::Idle {
-                        current_figure = match current_figure {
-                            Some(figure) => {
-                                audio.play_sfx(SFX_CLACK_ID);
-                                basket.ret(figure);
-                                None
-                            }
-                            other => other,
-                        };
+                        revert_figure(&mut current_figure, &mut basket, &audio);
                     }
+                }
+
+                Event::ControllerButtonDown { button: Button::Start, .. } => {
+                    process_pause(&mut game_state, &mut current_figure, &mut basket, &mut game_time, &audio);
                 }
 
                 _ => {}
@@ -568,4 +547,27 @@ fn main() {
 
     // update highscore results
     msg!(score_table.update_config(GAMESCORE_COUNT, config).to_file(CONFIG_FILE); canvas.window(), GT);
+}
+
+fn revert_figure(current_figure: &mut Option<Figure>, basket: &mut game::BasketSystem, audio: &audio::AudioSystem<'_>) {
+    if let Some(figure) = current_figure.take() {
+        audio.play_sfx(SFX_CLACK_ID);
+        basket.ret(figure);
+    }
+}
+
+fn process_pause(
+    game_state: &mut GameState, current_figure: &mut Option<Figure>, basket: &mut game::BasketSystem,
+    game_time: &mut GameTime, audio: &audio::AudioSystem<'_>,
+) {
+    match game_state {
+        GameState::Idle => {
+            *game_state = GameState::Pause;
+            game_time.pause();
+
+            revert_figure(current_figure, basket, audio);
+        }
+        GameState::Pause => *game_state = GameState::Idle,
+        _ => (),
+    }
 }
