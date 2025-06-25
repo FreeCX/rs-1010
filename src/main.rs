@@ -4,7 +4,7 @@ use std::panic;
 use sdl2::controller::{Axis, Button};
 use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, Scancode};
-use sdl2::mixer::{InitFlag, AUDIO_S16LSB, DEFAULT_CHANNELS};
+use sdl2::mixer::{AUDIO_S16LSB, DEFAULT_CHANNELS, InitFlag};
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::rect::Rect;
@@ -299,6 +299,13 @@ fn main() {
 
         if show_fps {
             msg!(render::font(&mut surface, &font, coord!(10), palette[10], palette[8], &format!("{fps}")); canvas.window(), GT);
+        }
+
+        // remove last game state
+        if game_state == GameState::GameOver && config.get::<String>("game", "state").is_some() {
+            // remove state from config (ignore errors)
+            config = config.section("game").erase("state");
+            let _ = config.to_file(CONFIG_FILE);
         }
 
         // show highscore table
