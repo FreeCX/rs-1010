@@ -298,7 +298,7 @@ fn main() {
         }
 
         if show_fps {
-            msg!(render::font(&mut surface, &font, coord!(10), palette[10], palette[8], &format!("{fps}")); canvas.window(), GT);
+            msg!(render::font(&mut surface, &font, coord!(10), palette[10], palette[8], &format!("{}", fps_limiter.fps())); canvas.window(), GT);
         }
 
         // remove last game state

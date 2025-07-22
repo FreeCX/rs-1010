@@ -7,7 +7,7 @@ use sdl2::render::Canvas;
 use sdl2::video::Window;
 
 use crate::consts::{FAKE_K, GET_COLOR_ERROR, MILLISECOND, TILE_CLEAN_ANIMATION_SIZE};
-use crate::extra::{fake_contrast, BlendColor, Coord, RectData};
+use crate::extra::{BlendColor, Coord, RectData, fake_contrast};
 use crate::random::Random;
 use crate::render::*;
 
@@ -137,6 +137,10 @@ impl FPSLimiter {
     pub fn update(&mut self, ticks: u32) {
         self.current_delta += ticks - self.last_ticks;
         self.last_ticks = ticks;
+    }
+
+    pub fn fps(&self) -> u32 {
+        MILLISECOND / self.current_delta
     }
 
     pub fn reset(&mut self) {
