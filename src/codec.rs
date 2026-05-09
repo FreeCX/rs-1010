@@ -76,7 +76,7 @@ impl Decoder {
                     buffer.push(((b & 0b1111) << 4) + (c >> 2));
                     buffer.push(((c & 0b11) << 6) + d)
                 }
-                // | aaaaaabb | bbbbcccc | cc..... .|
+                // | aaaaaabb | bbbbcccc | cc...... |
                 [a, b, c] => {
                     let a = index(a);
                     let b = index(b);
@@ -109,6 +109,7 @@ impl Decoder {
     {
         for byte in self.buffer.iter().skip(self.byte).take(count) {
             current <<= BYTE_SIZE - 1;
+            current <<= 1;
             current += T::from(*byte);
         }
 
@@ -344,5 +345,27 @@ mod tests {
         decoder.skip(4);
 
         assert_eq!(decoder.take(4), Some(0b0101));
+    }
+
+    #[test]
+    fn push_and_take_64_bits() {
+        #[rustfmt::skip]
+        let expected: Vec<i64> = vec![
+            0x0000000000000000, 0x00000000000000AB, 0x000000000000ABAB, 0x0000000000ABABAB, 0x00000000ABABABAB,
+            0x000000ABABABABAB, 0x0000ABABABABABAB, 0x00ABABABABABABAB, 0xABABABABABABABABu64 as i64,
+            0xAAAAAAAAAAAAAAAAu64 as i64, 0xF0F0F0F0F0F0F0F0u64 as i64, 0x0A1B2C3D4E5F6789,
+            0xABCDEF0123456789u64 as i64, 0x0A0B0C0D0E0F0908, 0xFFFFFFFFFFFFFFFFu64 as i64,
+        ];
+        let mut encoder = Encoder::new();
+        for item in &expected {
+            encoder.push(*item, 64);
+        }
+        let encoded = encoder.result();
+
+        let mut decoder = Decoder::decode(&encoded).unwrap();
+        for expect in expected {
+            let actual: i64 = decoder.take(64).unwrap();
+            assert_eq!(actual, expect, "expect=0x{:X}, actual=0x{:X}", expect, actual);
+        }
     }
 }
